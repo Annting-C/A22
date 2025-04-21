@@ -15,122 +15,79 @@
       color: white;
       overflow: hidden;
     }
+
     #container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
-    video, canvas, img {
+
+    .media-layer {
       position: absolute;
-      width: 300px; /* 調整為較小的寬度 */
-      height: 533px; /* 調整為較小的高度 */
+      width: 300px;
+      height: 533px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       object-fit: cover;
       border-radius: 20px;
-      transition: transform 0.3s ease;
     }
+
     #overlay {
       pointer-events: none;
     }
 
     .controls {
       position: absolute;
-      bottom: 25px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       gap: 15px;
       justify-content: center;
-      padding: 8px 15px;
-      background: rgba(0, 0, 0, 0.7);
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.5);
       border-radius: 30px;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
     }
 
     button {
-      width: 50px; /* 按鈕尺寸縮小 */
-      height: 50px; /* 按鈕尺寸縮小 */
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       border: none;
       background: #ff9900;
       color: white;
-      font-size: 12px; /* 調整字體大小 */
+      font-size: 14px;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      transition: all 0.2s ease;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s;
     }
 
     button:hover {
       transform: scale(1.1);
     }
-
-    button:active {
-      transform: scale(1.05);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
-    }
-
-    @media (max-width: 600px) {
-      button {
-        width: 45px;
-        height: 45px;
-        font-size: 10px;
-      }
-      .controls {
-        bottom: 15px;
-        padding: 6px 12px;
-      }
-    }
-
-    @media (max-width: 400px) {
-      video, canvas, img {
-        width: 70%; /* 確保更小螢幕上的顯示效果 */
-        height: auto;
-      }
-      .controls {
-        padding: 5px 10px;
-        gap: 10px;
-      }
-    }
-
-    /* 額外過渡效果 */
-    .fadeIn {
-      animation: fadeIn 0.5s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
   </style>
 </head>
 <body>
   <div id="container">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display: none;"></canvas>
-    <img id="photo" style="display: none;" class="fadeIn"/>
-    <img id="overlay" class="fadeIn"/>
+    <video id="video" autoplay playsinline class="media-layer"></video>
+    <canvas id="canvas" style="display: none;" class="media-layer"></canvas>
+    <img id="photo" style="display: none;" class="media-layer" />
+    <img id="overlay" class="media-layer" />
+    
     <div class="controls">
       <button onclick="takePhoto()">拍照</button>
-      <button onclick="retakePhoto()">重新拍攝</button>
-      <button onclick="switchCamera()">切換鏡頭</button>
+      <button onclick="retakePhoto()">重拍</button>
+      <button onclick="switchCamera()">鏡頭</button>
       <button onclick="downloadPhoto()">下載</button>
-      <button onclick="cycleImageSequence()">切換貼圖</button>
+      <button onclick="cycleImageSequence()">貼圖</button>
     </div>
   </div>
 
   <script>
-    const OVERLAY_WIDTH = 300; /* 調整為較小的寬度 */
-    const OVERLAY_HEIGHT = 533; /* 調整為較小的高度 */
+    const OVERLAY_WIDTH = 300;
+    const OVERLAY_HEIGHT = 533;
 
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
@@ -170,9 +127,10 @@
           canvas.height = OVERLAY_HEIGHT;
         };
 
+        // 水平翻轉，不改變位置
         video.style.transform = facingMode === "user"
-          ? "translate(-50%, -50%) scaleX(-1)"
-          : "translate(-50%, -50%)";
+          ? "scaleX(-1)"
+          : "none";
 
       } catch (err) {
         alert("無法開啟相機：" + err.message);
