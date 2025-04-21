@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="雁行吟草" content="width=device-width, initial-scale=1.0">
+    <title>Sequence Image Filter Camera</title>
+    <style>
+        body {
+            font-family: Noto Sans TC, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .video{
+            width: 500;
+            height: 800;
+            position: fixed;
+            top: 200;
+            left:100;
+        }
+        .canvas{
+            width: 500;
+            height: 800;
+            position: fixed;
+            top: 200;
+            left:100;
+        }
+        /*#cameraView, #canvas {
+            width: 100%;
+            max-width: 500px;
+            max-height: 800px;
+            margin-bottom: 20px;
+        }*/
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .container{
+            margin: 0 auto;
+            position: relative;
+            align-items: center;
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <h1>雁行吟草 Filter Camera</h1>
+    <div class="container">
+        <video id="cameraView" class="video" autoplay></video>
+        <canvas id="canvas" class="canvas"></canvas>
+    </div>
+    <div class="container">
+        <button id="Take a Shot">Take a Shot</button>
+    </div>
+    
+
+    <script>
+        const cameraView = document.getElementById('cameraView');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const toggleFilterBtn = document.getElementById('Take a Shot');
+        let filterActive = false;
+        let currentFrame = 0;
+        const frameCount = 242; // 根據您的序列圖片數量調整
+        const images = [];
+
+        // 預加載序列圖片
+        function preloadImages() {
+            for (let i = 0; i < frameCount; i++) {
+                const img = new Image();
+                const paddedNumber = String(i).padStart(5, "0");
+                img.src="Duck1/Duck1_" + paddedNumber + ".png"
+                images.push(img);
+
+            }
+        }
+
+        // 訪問相機
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            cameraView.srcObject = stream;
+        }
+
+        // 應用圖片序列濾鏡
+        function applySequenceFilter() {
+           if (!filterActive) return;
+            
+            canvas.width = cameraView.videoWidth;
+            canvas.height = cameraView.videoHeight;
+            
+            ctx.drawImage(cameraView, 0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1; // 調整此值以改變濾鏡強度
+            ctx.drawImage(images[currentFrame], 0, 0, canvas.width, canvas.height);
+            ctx.globalAlpha = 1.0;
+            
+            currentFrame = (currentFrame + 1) % frameCount;
+            
+            requestAnimationFrame(applySequenceFilter);
+        }
+
+        // 切換濾鏡
+        toggleFilterBtn.addEventListener('click', function() {
+            filterActive = !filterActive;
+            if (filterActive) {
+                applySequenceFilter();
+            }
+        });
+
+        // 初始化
+        preloadImages();
+        setupCamera();
+        cameraView.addEventListener('loadedmetadata', function() {
+            canvas.width = cameraView.videoWidth;
+            canvas.height = cameraView.videoHeight;
+        
+ 
+        });
+        
+        
+    </script>
+</body>
+</html>

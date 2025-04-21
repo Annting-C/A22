@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A22 機場捷運</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000000;
+      font-family: sans-serif;
+      overflow: hidden;
+    }
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+    }
+    #camera-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 9 / 16;
+      overflow: hidden;
+    }
+    video, canvas, img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      object-fit: cover;
+      width: 100%;
+      height: 100%;
+    }
+    #video {
+      transform: translate(-50%, -50%) scaleX(-1);
+    }
+    #photo {
+      display: none;
+      z-index: 2;
+    }
+    #photo-overlay {
+      display: none;
+      z-index: 3;
+      pointer-events: none;
+    }
+    #overlay {
+      z-index: 1;
+      pointer-events: none;
+    }
+    .controls {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      z-index: 4;
+    }
+    button {
+      padding: 10px 15px;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      background: #ffad31;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="camera-wrapper">
+      <video id="video" autoplay="ture" playsinline></video>
+      <canvas id="canvas" style="display: none;"></canvas>
+      <img id="photo" />
+      <img id="photo-overlay" />
+      <img id="overlay" />
+    </div>
+    <div class="controls">
+      <button onclick="takePhoto()">📸 拍照</button>
+      <button onclick="retakePhoto()">🔄 重新拍攝</button>
+      <button onclick="switchCamera()">🔁 切換鏡頭</button>
+      <button onclick="downloadPhoto()">⬇️ 下載</button>
+      <button onclick="cycleImageSequence()">🦆 切換貼圖</button>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const photo = document.getElementById("photo");
+    const photoOverlay = document.getElementById("photo-overlay");
+    const overlay = document.getElementById("overlay");
+
+    const imageFolders = ["Duck1/", "Duck2/", "Duck3/", "Duck4/"];
+    let currentFolderIndex = 0;
+    let frameCount = 364;
+    let currentOverlayIndex = 0;
+    let animationInterval = null;
+    const images = [];
+
+    let currentStream = null;
+    let facingMode = "user";
+
+    async function startCamera() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facingMode,
+            aspectRatio: 9 / 16,
+            width: { ideal: 720 },
+            height: { ideal: 1280 }
+          },
+          audio: false
+        });
+        currentStream = stream;
+        video.srcObject = stream;
+
+        video.style.transform = facingMode === "user"
+          ? "translate(-50%, -50%) scaleX(-1)"
+          : "translate(-50%, -50%)";
+
+      } catch (err) {
+        alert("無法開啟相機：" + err.message);
+        console.error(err);
+      }
+    }
+
+    function takePhoto() {
+      const context = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.save();
+      if (facingMode === "user") {
+        context.scale(-1, 1);
+        context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      } else {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+      context.restore();
+
+      const data = canvas.toDataURL("image/png");
+      photo.src = data;
+      photoOverlay.src = images[currentOverlayIndex].src;
+      photo.style.display = "block";
+      photoOverlay.style.display = "block";
+    }
+
+    function retakePhoto() {
+      photo.style.display = "none";
+      photoOverlay.style.display = "none";
+    }
+
+    function switchCamera() {
+      facingMode = facingMode === "user" ? "environment" : "user";
+      startCamera();
+    }
+
+    function downloadPhoto() {
+      const offscreenCanvas = document.createElement("canvas");
+      offscreenCanvas.width = canvas.width;
+      offscreenCanvas.height = canvas.height;
+      const ctx = offscreenCanvas.getContext("2d");
+
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0);
+        const overlayImg = new Image();
+        overlayImg.onload = () => {
+          ctx.drawImage(overlayImg, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+          const link = document.createElement("a");
+          link.download = "photo.png";
+          link.href = offscreenCanvas.toDataURL("image/png");
+          link.click();
+        };
+        overlayImg.src = photoOverlay.src;
+      };
+      img.src = photo.src;
+    }
+
+    function preloadImages(folder) {
+      images.length = 0;
+      for (let i = 0; i < frameCount; i++) {
+        const img = new Image();
+        const paddedNumber = String(i).padStart(5, "0");
+        const folderName = folder.replace("/", "");
+        img.src = folder + folderName + "_" + paddedNumber + ".webp";
+        images.push(img);
+      }
+    }
+
+    function updateOverlay() {
+      if (images.length > 0) {
+        overlay.src = images[currentOverlayIndex].src;
+      }
+    }
+
+    function startOverlayAnimation() {
+      if (animationInterval) clearInterval(animationInterval);
+      animationInterval = setInterval(() => {
+        currentOverlayIndex = (currentOverlayIndex + 1) % images.length;
+        updateOverlay();
+      }, 33);
+    }
+
+    function cycleImageSequence() {
+      currentFolderIndex = (currentFolderIndex + 1) % imageFolders.length;
+      const newFolder = imageFolders[currentFolderIndex];
+      preloadImages(newFolder);
+      currentOverlayIndex = 0;
+      updateOverlay();
+    }
+
+    // 初始化
+    startCamera();
+    preloadImages(imageFolders[currentFolderIndex]);
+    startOverlayAnimation();
+  </script>
+</body>
+</html>
