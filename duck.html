@@ -11,7 +11,7 @@
     body {
       margin: 0;
       font-family: 'Helvetica Neue', sans-serif;
-      background: #1e1e1e;
+      background: #000;
       color: white;
       overflow: hidden;
     }
@@ -22,14 +22,13 @@
     }
     video, canvas, img {
       position: absolute;
-      justify-content: center;
-      width: 90%; /* 使用百分比寬度以適應不同螢幕 */
-      height: auto;
+      width: 360px;
+      height: 640px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       object-fit: cover;
-      border-radius: 15px;
+      border-radius: 20px;
     }
     #overlay {
       pointer-events: none;
@@ -37,78 +36,33 @@
 
     .controls {
       position: absolute;
-      bottom: 20px;
+      bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
       gap: 20px;
       justify-content: center;
-      padding: 15px 20px;
-      background: rgba(0,0,0,0.7);
-      border-radius: 40px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+      padding: 10px 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 30px;
+      backdrop-filter: blur(8px);
     }
 
     button {
-      width: 60px;
-      height: 60px;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
       border: none;
       background: #ff9900;
       color: white;
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-      transition: all 0.2s ease;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: all 0.2s;
     }
 
     button:hover {
       transform: scale(1.1);
-      box-shadow: 0 10px 15px rgba(0,0,0,0.4);
-    }
-
-    button:active {
-      transform: scale(1.05);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-    }
-
-    @media (max-width: 600px) {
-      button {
-        width: 50px;
-        height: 50px;
-        font-size: 14px;
-      }
-      .controls {
-        bottom: 15px;
-      }
-    }
-
-    @media (max-width: 400px) {
-      video, canvas, img {
-        width: 80%; /* 確保更小螢幕上的顯示效果 */
-      }
-      .controls {
-        padding: 12px 15px;
-        gap: 15px;
-      }
-    }
-
-    /* 添加過渡動畫 */
-    .fadeIn {
-      animation: fadeIn 0.5s ease-in-out;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
     }
   </style>
 </head>
@@ -116,8 +70,8 @@
   <div id="container">
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display: none;"></canvas>
-    <img id="photo" style="display: none;" class="fadeIn"/>
-    <img id="overlay" class="fadeIn"/>
+    <img id="photo" style="display: none;" />
+    <img id="overlay" />
     <div class="controls">
       <button onclick="takePhoto()">拍照</button>
       <button onclick="retakePhoto()">重新拍攝</button>
