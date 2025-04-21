@@ -8,7 +8,6 @@
     * {
       box-sizing: border-box;
     }
-
     body {
       margin: 0;
       font-family: 'Helvetica Neue', sans-serif;
@@ -16,111 +15,75 @@
       color: white;
       overflow: hidden;
     }
-
     #container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
-
     video, canvas, img {
       position: absolute;
-      width: 60vw;
-      max-width: 240px;
-      aspect-ratio: 9/16;
+      width: 360px;
+      height: 640px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       object-fit: cover;
       border-radius: 20px;
     }
-
-    #overlay {
+    #canvas, #photo, #overlay {
       pointer-events: none;
-      z-index: 3;
-    }
-
-    #photo {
-      z-index: 2;
-    }
-
-    video {
-      z-index: 1;
-    }
-
-    canvas {
-      display: none;
     }
 
     .controls {
       position: absolute;
-      bottom: 20px;
+      bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      flex-wrap: wrap;
+      gap: 15px;
       justify-content: center;
-      gap: 12px;
-      padding: 10px 20px;
-      background: rgba(0, 0, 0, 0.6);
+      padding: 10px 15px;
+      background: rgba(0, 0, 0, 0.5);
       border-radius: 30px;
-      backdrop-filter: blur(6px);
-      z-index: 10;
+      backdrop-filter: blur(8px);
     }
 
     button {
       width: 60px;
       height: 60px;
-      border: none;
       border-radius: 50%;
+      border: none;
       background: #ff9900;
       color: white;
-      font-size: 12px;
+      font-size: 14px;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-      transition: transform 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      line-height: 1.2;
-      padding: 6px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: all 0.2s;
     }
 
     button:hover {
       transform: scale(1.1);
-    }
-
-    @media (max-width: 400px) {
-      button {
-        width: 50px;
-        height: 50px;
-        font-size: 10px;
-      }
     }
   </style>
 </head>
 <body>
   <div id="container">
     <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" style="display: none;"></canvas>
     <img id="photo" style="display: none;" />
     <img id="overlay" />
     <div class="controls">
       <button onclick="takePhoto()">拍照</button>
       <button onclick="retakePhoto()">重拍</button>
-      <button onclick="switchCamera()">鏡頭</button>
+      <button onclick="switchCamera()">切鏡</button>
       <button onclick="downloadPhoto()">下載</button>
-      <button onclick="cycleImageSequence()">貼圖</button>
+      <button onclick="cycleImageSequence()">換貼圖</button>
     </div>
   </div>
 
   <script>
-    const OVERLAY_WIDTH = 240;
-    const OVERLAY_HEIGHT = 426;
+    const OVERLAY_WIDTH = 360;
+    const OVERLAY_HEIGHT = 640;
 
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
@@ -171,31 +134,31 @@
     }
 
     function takePhoto() {
-  const context = canvas.getContext("2d");
-  canvas.width = OVERLAY_WIDTH;
-  canvas.height = OVERLAY_HEIGHT;
+      const context = canvas.getContext("2d");
+      canvas.width = OVERLAY_WIDTH;
+      canvas.height = OVERLAY_HEIGHT;
 
-  context.save();
-  
-  const scale = 0.6; // 比例縮小 60%
-  const offsetX = (OVERLAY_WIDTH * (1 - scale)) / 2;
-  const offsetY = (OVERLAY_HEIGHT * (1 - scale)) / 2;
-  const drawWidth = OVERLAY_WIDTH * scale;
-  const drawHeight = OVERLAY_HEIGHT * scale;
+      context.save();
 
-  if (facingMode === "user") {
-    context.scale(-1, 1);
-    context.drawImage(video, -OVERLAY_WIDTH + offsetX, offsetY, drawWidth, drawHeight);
-  } else {
-    context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
-  }
+      const scale = 0.8; // 縮小倍率
+      const offsetX = (OVERLAY_WIDTH * (1 - scale)) / 2;
+      const offsetY = (OVERLAY_HEIGHT * (1 - scale)) / 2;
+      const drawWidth = OVERLAY_WIDTH * scale;
+      const drawHeight = OVERLAY_HEIGHT * scale;
 
-  context.restore();
+      if (facingMode === "user") {
+        context.scale(-1, 1);
+        context.drawImage(video, -OVERLAY_WIDTH + offsetX, offsetY, drawWidth, drawHeight);
+      } else {
+        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+      }
 
-  const data = canvas.toDataURL("image/png");
-  photo.src = data;
-  photo.style.display = "block";
-}
+      context.restore();
+
+      const data = canvas.toDataURL("image/png");
+      photo.src = data;
+      photo.style.display = "block";
+    }
 
     function retakePhoto() {
       photo.style.display = "none";
