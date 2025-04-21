@@ -19,16 +19,17 @@
       position: relative;
       width: 100vw;
       height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     video, canvas, img {
       position: absolute;
       width: 360px;
       height: 640px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
       object-fit: cover;
       border-radius: 20px;
+      transition: transform 0.3s ease;
     }
     #overlay {
       pointer-events: none;
@@ -42,27 +43,73 @@
       display: flex;
       gap: 20px;
       justify-content: center;
-      padding: 10px 20px;
-      background: rgba(0,0,0,0.5);
+      padding: 12px 20px;
+      background: rgba(0, 0, 0, 0.7);
       border-radius: 30px;
       backdrop-filter: blur(8px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
     }
 
     button {
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       border-radius: 50%;
       border: none;
       background: #ff9900;
       color: white;
-      font-size: 16px;
+      font-size: 14px;
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      transition: all 0.2s;
+      transition: all 0.2s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     button:hover {
       transform: scale(1.1);
+    }
+
+    button:active {
+      transform: scale(1.05);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    @media (max-width: 600px) {
+      button {
+        width: 60px;
+        height: 60px;
+        font-size: 12px;
+      }
+      .controls {
+        bottom: 15px;
+        padding: 10px 15px;
+      }
+    }
+
+    @media (max-width: 400px) {
+      video, canvas, img {
+        width: 80%;
+        height: auto;
+      }
+      .controls {
+        padding: 10px 12px;
+        gap: 15px;
+      }
+    }
+
+    /* 額外過渡效果 */
+    .fadeIn {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
   </style>
 </head>
@@ -70,8 +117,8 @@
   <div id="container">
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display: none;"></canvas>
-    <img id="photo" style="display: none;" />
-    <img id="overlay" />
+    <img id="photo" style="display: none;" class="fadeIn"/>
+    <img id="overlay" class="fadeIn"/>
     <div class="controls">
       <button onclick="takePhoto()">拍照</button>
       <button onclick="retakePhoto()">重新拍攝</button>
