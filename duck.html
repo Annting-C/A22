@@ -3,51 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>相機與圖片序列</title>
+  <title>相機與貼圖</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       margin: 0;
+      font-family: 'Helvetica Neue', sans-serif;
+      background: #000;
+      color: white;
       overflow: hidden;
-      background: #ffffff;
-      font-family: sans-serif;
     }
     #container {
       position: relative;
       width: 100vw;
       height: 100vh;
-      overflow: hidden;
-      background: #fff;
     }
     video, canvas, img {
       position: absolute;
+      width: 360px;
+      height: 640px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       object-fit: cover;
-      max-width: 100%;
-      max-height: 100%;
+      border-radius: 20px;
     }
     #overlay {
       pointer-events: none;
     }
+
     .controls {
       position: absolute;
-      bottom: 10px;
+      bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+      gap: 20px;
       justify-content: center;
+      padding: 10px 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 30px;
+      backdrop-filter: blur(8px);
     }
+
     button {
-      padding: 10px 15px;
-      color: #ffff;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
       border: none;
-      border-radius: 8px;
       background: #ff9900;
+      color: white;
       font-size: 16px;
       cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.1);
     }
   </style>
 </head>
@@ -58,15 +73,18 @@
     <img id="photo" style="display: none;" />
     <img id="overlay" />
     <div class="controls">
-      <button onclick="takePhoto()">📸 拍照</button>
-      <button onclick="retakePhoto()">🔄 重新拍攝</button>
-      <button onclick="switchCamera()">🔁 切換鏡頭</button>
-      <button onclick="downloadPhoto()">⬇️ 下載</button>
-      <button onclick="cycleImageSequence()">🦆 切換貼圖</button>
+      <button onclick="takePhoto()">拍照</button>
+      <button onclick="retakePhoto()">重新拍攝</button>
+      <button onclick="switchCamera()">切換鏡頭</button>
+      <button onclick="downloadPhoto()">下載</button>
+      <button onclick="cycleImageSequence()">切換貼圖</button>
     </div>
   </div>
 
   <script>
+    const OVERLAY_WIDTH = 360;
+    const OVERLAY_HEIGHT = 640;
+
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const photo = document.getElementById("photo");
@@ -80,7 +98,7 @@
     const images = [];
 
     let currentStream = null;
-    let facingMode = "user"; // 前鏡頭
+    let facingMode = "user";
 
     async function startCamera() {
       if (currentStream) {
@@ -91,16 +109,20 @@
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: facingMode,
-            aspectRatio: 9 / 16,
-            width: { ideal: 720 },
-            height: { ideal: 1280 }
+            width: { ideal: OVERLAY_WIDTH },
+            height: { ideal: OVERLAY_HEIGHT }
           },
           audio: false
         });
+
         currentStream = stream;
         video.srcObject = stream;
 
-        // 鏡射
+        video.onloadedmetadata = () => {
+          canvas.width = OVERLAY_WIDTH;
+          canvas.height = OVERLAY_HEIGHT;
+        };
+
         video.style.transform = facingMode === "user"
           ? "translate(-50%, -50%) scaleX(-1)"
           : "translate(-50%, -50%)";
@@ -113,14 +135,15 @@
 
     function takePhoto() {
       const context = canvas.getContext("2d");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = OVERLAY_WIDTH;
+      canvas.height = OVERLAY_HEIGHT;
+
       context.save();
       if (facingMode === "user") {
         context.scale(-1, 1);
-        context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        context.drawImage(video, -OVERLAY_WIDTH, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
       } else {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
       }
       context.restore();
 
@@ -167,7 +190,7 @@
       animationInterval = setInterval(() => {
         currentOverlayIndex = (currentOverlayIndex + 1) % images.length;
         updateOverlay();
-      }, 33); // 約30FPS
+      }, 33);
     }
 
     function cycleImageSequence() {
@@ -177,40 +200,6 @@
       currentOverlayIndex = 0;
       updateOverlay();
     }
-
-    // 拖拉縮放功能
-    let isDragging = false;
-    let startX, startY, initialX, initialY, scale = 1;
-
-    photo.addEventListener("touchstart", e => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        const style = window.getComputedStyle(photo);
-        initialX = parseFloat(style.left);
-        initialY = parseFloat(style.top);
-      }
-    });
-
-    photo.addEventListener("touchmove", e => {
-      if (isDragging && e.touches.length === 1) {
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
-        photo.style.left = `${initialX + dx}px`;
-        photo.style.top = `${initialY + dy}px`;
-      } else if (e.touches.length === 2) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const newDistance = Math.sqrt(dx * dx + dy * dy);
-        scale = Math.min(3, Math.max(0.5, newDistance / 200));
-        photo.style.transform = `translate(-50%, -50%) scale(${scale})`;
-      }
-    });
-
-    photo.addEventListener("touchend", () => {
-      isDragging = false;
-    });
 
     // 初始化
     startCamera();
