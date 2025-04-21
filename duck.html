@@ -18,7 +18,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #ffffff;
+      background: hsl(0, 0%, 100%);
     }
     #camera-wrapper {
       position: relative;
@@ -62,10 +62,9 @@
     }
     button {
       padding: 10px 15px;
-      color: #ffffff;
       border: none;
       border-radius: 8px;
-      background: #ffa436;
+      background: #ffffff88;
       font-size: 16px;
       cursor: pointer;
     }
@@ -140,7 +139,14 @@
 
       const data = canvas.toDataURL("image/png");
       photo.src = data;
-      photoOverlay.src = images[currentOverlayIndex].src;
+
+      const overlayCanvas = document.createElement("canvas");
+      overlayCanvas.width = canvas.width;
+      overlayCanvas.height = canvas.height;
+      const overlayCtx = overlayCanvas.getContext("2d");
+      overlayCtx.drawImage(images[currentOverlayIndex], 0, 0, canvas.width, canvas.height);
+      photoOverlay.src = overlayCanvas.toDataURL("image/png");
+
       photo.style.display = "block";
       photoOverlay.style.display = "block";
     }
