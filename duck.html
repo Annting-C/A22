@@ -25,8 +25,8 @@
     }
     video, canvas, img {
       position: absolute;
-      width: 360px;
-      height: 640px;
+      width: 300px; /* 調整為較小的寬度 */
+      height: 533px; /* 調整為較小的高度 */
       object-fit: cover;
       border-radius: 20px;
       transition: transform 0.3s ease;
@@ -37,13 +37,13 @@
 
     .controls {
       position: absolute;
-      bottom: 30px;
+      bottom: 25px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      gap: 20px;
+      gap: 15px;
       justify-content: center;
-      padding: 12px 20px;
+      padding: 8px 15px;
       background: rgba(0, 0, 0, 0.7);
       border-radius: 30px;
       backdrop-filter: blur(8px);
@@ -51,13 +51,13 @@
     }
 
     button {
-      width: 70px;
-      height: 70px;
+      width: 50px; /* 按鈕尺寸縮小 */
+      height: 50px; /* 按鈕尺寸縮小 */
       border-radius: 50%;
       border: none;
       background: #ff9900;
       color: white;
-      font-size: 14px;
+      font-size: 12px; /* 調整字體大小 */
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(0,0,0,0.3);
       transition: all 0.2s ease;
@@ -77,24 +77,24 @@
 
     @media (max-width: 600px) {
       button {
-        width: 60px;
-        height: 60px;
-        font-size: 12px;
+        width: 45px;
+        height: 45px;
+        font-size: 10px;
       }
       .controls {
         bottom: 15px;
-        padding: 10px 15px;
+        padding: 6px 12px;
       }
     }
 
     @media (max-width: 400px) {
       video, canvas, img {
-        width: 80%;
+        width: 70%; /* 確保更小螢幕上的顯示效果 */
         height: auto;
       }
       .controls {
-        padding: 10px 12px;
-        gap: 15px;
+        padding: 5px 10px;
+        gap: 10px;
       }
     }
 
@@ -129,8 +129,8 @@
   </div>
 
   <script>
-    const OVERLAY_WIDTH = 360;
-    const OVERLAY_HEIGHT = 640;
+    const OVERLAY_WIDTH = 300; /* 調整為較小的寬度 */
+    const OVERLAY_HEIGHT = 533; /* 調整為較小的高度 */
 
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
