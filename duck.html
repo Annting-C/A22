@@ -97,7 +97,7 @@
 
     const imageFolders = ["Duck1/", "Duck2/", "Duck3/", "Duck4/"];
     let currentFolderIndex = 0;
-    let frameCount = 30;
+    let frameCount = 364;
     let currentOverlayIndex = 0;
     let animationInterval = null;
     const images = [];
@@ -190,7 +190,7 @@
         const img = new Image();
         const paddedNumber = String(i).padStart(5, "0");
         const folderName = folder.replace("/", "");
-        img.src = folder + folderName + "_" + paddedNumber + ".png";
+        img.src = folder + folderName + "_" + paddedNumber + ".webp";
         images.push(img);
       }
     }
