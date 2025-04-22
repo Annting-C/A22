@@ -39,7 +39,7 @@
       border-radius: 20px;
       z-index: 1;
     }
-    #canvas { pointer-events: none; }
+    #canvas { display: none; /* 預設隱藏 */ pointer-events: none; }
     .controls {
       position: absolute;
       bottom: 20px;
@@ -83,7 +83,7 @@
     <button id="camSwitch">前鏡頭</button>
     <button id="seqSwitch" class="active">Duck1</button>
     <button id="capture">拍照</button>
-    <a id="download" download="photo.png">下載</a>
+    <a id="download" download="photo.png" style="display:none;">下載</a>
   </div>
   <script>
     const video = document.getElementById('video');
@@ -97,7 +97,7 @@
     // 鏡頭切換狀態
     let currentFacing = 'user';
     camSwitchBtn.addEventListener('click', () => {
-      if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+      stopCamera();
       currentFacing = currentFacing === 'user' ? 'environment' : 'user';
       camSwitchBtn.textContent = currentFacing === 'user' ? '前鏡頭' : '後鏡頭';
       startCamera();
@@ -108,18 +108,15 @@
     let currentSeqIndex = 0;
     const frameCount = 364;
     let images = [];
-    let currentFrame = 0;
     const fps = 12;
     const frameInterval = 1000 / fps;
-    let lastFrameTime = Date.now();
+    const seqStartTime = Date.now();
 
-    // 預載圖片
     function preloadImages(folderName) {
       images = [];
       const basePath = `sequences/${folderName}/`;
       for (let i = 0; i < frameCount; i++) {
         const img = new Image();
-        img.onload = () => {};
         img.onerror = () => console.error(`載入失敗: ${img.src}`);
         img.src = `${basePath}${folderName}_${String(i).padStart(5,'0')}.webp`;
         images.push(img);
@@ -131,49 +128,51 @@
     seqSwitchBtn.addEventListener('click', () => {
       currentSeqIndex = (currentSeqIndex + 1) % sequenceFolders.length;
       preloadImages(sequenceFolders[currentSeqIndex]);
-      currentFrame = 0;
     });
 
-    // 啟動鏡頭
+    // 啟動與停止鏡頭
+    let stream;
     async function startCamera() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: currentFacing, width: { ideal: 360 }, height: { ideal: 640 } },
           audio: false
         });
         video.srcObject = stream;
-        video.addEventListener('loadedmetadata', () => {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          renderLoop();
-        });
       } catch (e) {
         alert('無法存取鏡頭：'+e.message);
       }
     }
+    function stopCamera() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    }
 
-    // 繪製迴圈
-    function renderLoop() {
+    // 計算當前序列幀
+    function getCurrentFrame() {
+      const elapsed = Date.now() - seqStartTime;
+      return Math.floor(elapsed / frameInterval) % images.length;
+    }
+
+    // 捕捉畫面
+    captureBtn.addEventListener('click', () => {
+      // 設定 canvas 大小
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      // 畫影片
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const now = Date.now();
-      if (now - lastFrameTime >= frameInterval) {
-        currentFrame = (currentFrame + 1) % images.length;
-        lastFrameTime = now;
-      }
-      const seqImg = images[currentFrame];
+      // 畫序列圖
+      const frameIndex = getCurrentFrame();
+      const seqImg = images[frameIndex];
       if (seqImg && seqImg.complete) {
         ctx.globalAlpha = 0.8;
         ctx.drawImage(seqImg, 0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1;
       }
-      requestAnimationFrame(renderLoop);
-    }
-
-    // 拍照
-    captureBtn.addEventListener('click', () => {
-      const dataURL = canvas.toDataURL('image/png');
-      downloadLink.href = dataURL;
+      // 顯示 canvas 和下載
+      canvas.style.display = 'block';
+      downloadLink.style.display = 'inline-block';
+      downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.textContent = '點此下載';
     });
 
