@@ -43,7 +43,7 @@
     #canvas {
       display: block;
       pointer-events: none;
-      z-index: 2;
+      z-index: 5;
     }
     .controls {
       position: absolute;
@@ -169,7 +169,7 @@
         ctx.globalAlpha = 1;
       }
       video.style.display = 'none';
-      canvas.style.zIndex = 4;
+      canvas.style.zIndex = 6;
       downloadLink.style.display = 'inline-block';
       downloadLink.href = canvas.toDataURL('image/png');
     });
