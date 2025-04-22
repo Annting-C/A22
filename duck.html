@@ -1,218 +1,172 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>相機與貼圖</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Mobile Web Camera + Cycle Sequences</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
-      font-family: 'Helvetica Neue', sans-serif;
       background: #000;
-      color: white;
+      color: #fff;
+      font-family: Arial, sans-serif;
       overflow: hidden;
-    }
-    #container {
-      position: relative;
-      width: 100vw;
       height: 100vh;
     }
-    video, canvas, img {
+    /* 網頁最上方標題 */
+    #pageTitle {
       position: absolute;
-      width: 360px;
-      height: 640px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      object-fit: cover;
-      border-radius: 20px;
-    }
-    #canvas, #overlay {
-      pointer-events: none;
-    }
-    #photo {
-      z-index: 10;
-      pointer-events: none;
-    }
-    .controls {
-      position: absolute;
-      bottom: 30px;
+      top: 20px;
       left: 50%;
       transform: translateX(-50%);
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      z-index: 3;
+      color: #fff;
+      pointer-events: none;
+    }
+    #video, #canvas {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 360px; height: 640px;
+      transform: translate(-50%, -50%) scaleX(-1);
+      object-fit: cover;
+      border-radius: 20px;
+      z-index: 1;
+    }
+    #canvas { pointer-events: none; }
+    .controls {
+      position: absolute;
+      bottom: 20px; left: 50%;
+      transform: translateX(-50%);
       display: flex;
-      justify-content: space-evenly;
-      width: 100%;
-      padding: 10px;
+      gap: 10px;
       background: rgba(0, 0, 0, 0.5);
-      border-radius: 30px;
-      backdrop-filter: blur(8px);
-      z-index: 20;
+      padding: 10px 12px;
+      border-radius: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 380px;
+      z-index: 2;
     }
-    button {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
+    .controls button,
+    .controls a {
+      font-size: 16px;
+      padding: 8px 12px;
       border: none;
-      background: #ff9900;
-      color: white;
-      font-size: 14px;
+      border-radius: 6px;
+      background: #333;
+      color: #fff;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
+      text-decoration: none;
     }
-    button:hover {
-      transform: scale(1.1);
+    .controls button:hover,
+    .controls a:hover {
+      background: #555;
+    }
+    .controls .active {
+      background: #007acc;
     }
   </style>
 </head>
 <body>
-  <div id="container">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display: none;"></canvas>
-    <img id="overlay" />
-    <img id="photo" style="display: none;" />
-    <div class="controls">
-      <button onclick="takePhoto()">拍照</button>
-      <button onclick="retakePhoto()">重拍</button>
-      <button onclick="switchCamera()">切鏡</button>
-      <button onclick="downloadPhoto()">下載</button>
-      <button onclick="cycleImageSequence()">換濾鏡</button>
-    </div>
+  <div id="pageTitle">SKYWEAVER PASSAGE</div>
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+  <div class="controls">
+    <button id="camSwitch">前鏡頭</button>
+    <button id="seqSwitch" class="active">Duck1</button>
+    <button id="capture">拍照</button>
+    <a id="download" download="photo.png">下載</a>
   </div>
-
   <script>
-    const OVERLAY_WIDTH = 360;
-    const OVERLAY_HEIGHT = 640;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const captureBtn = document.getElementById('capture');
+    const downloadLink = document.getElementById('download');
+    const camSwitchBtn = document.getElementById('camSwitch');
+    const seqSwitchBtn = document.getElementById('seqSwitch');
 
-    const video = document.getElementById("video");
-    const canvas = document.getElementById("canvas");
-    const photo = document.getElementById("photo");
-    const overlay = document.getElementById("overlay");
-
-    const imageFolders = ["Duck1/", "Duck2/", "Duck3/", "Duck4/"];
-    let currentFolderIndex = 0;
-    let frameCount = 364;
-    let currentOverlayIndex = 0;
-    let animationInterval = null;
-    const images = [];
-
-    let currentStream = null;
-    let facingMode = "user";
-
-    async function startCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: facingMode,
-            width: { ideal: OVERLAY_WIDTH },
-            height: { ideal: OVERLAY_HEIGHT }
-          },
-          audio: false
-        });
-
-        currentStream = stream;
-        video.srcObject = stream;
-
-        video.onloadedmetadata = () => {
-          canvas.width = OVERLAY_WIDTH;
-          canvas.height = OVERLAY_HEIGHT;
-        };
-
-        video.style.transform = facingMode === "user"
-          ? "translate(-50%, -50%) scaleX(-1)"
-          : "translate(-50%, -50%)";
-
-      } catch (err) {
-        alert("無法開啟相機：" + err.message);
-        console.error(err);
-      }
-    }
-
-    function takePhoto() {
-      const context = canvas.getContext("2d");
-      canvas.width = OVERLAY_WIDTH;
-      canvas.height = OVERLAY_HEIGHT;
-
-      context.save();
-
-      if (facingMode === "user") {
-        context.translate(OVERLAY_WIDTH, 0);
-        context.scale(-1, 1);
-      }
-
-      context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
-
-      if (images.length > 0) {
-        context.drawImage(images[currentOverlayIndex], 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
-      }
-
-      context.restore();
-
-      const data = canvas.toDataURL("image/png");
-      photo.src = data;
-      photo.style.display = "block";
-    }
-
-    function retakePhoto() {
-      photo.style.display = "none";
-    }
-
-    function switchCamera() {
-      facingMode = facingMode === "user" ? "environment" : "user";
+    // 鏡頭切換
+    let currentFacing = 'user';
+    camSwitchBtn.addEventListener('click', () => {
+      if (video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
+      currentFacing = currentFacing === 'user' ? 'environment' : 'user';
+      camSwitchBtn.textContent = currentFacing === 'user' ? '前鏡頭' : '後鏡頭';
       startCamera();
-    }
+    });
 
-    function downloadPhoto() {
-      const link = document.createElement("a");
-      link.download = "photo.png";
-      link.href = photo.src;
-      link.click();
-    }
+    // 序列資料夾
+    const sequenceFolders = ['Duck1','Duck2','Duck3','Duck4'];
+    let currentSeqIndex = 0;
+    const frameCount = 364;
+    let images = [];
+    let currentFrame = 0;
+    const fps = 12;
+    const frameInterval = 1000 / fps;
+    let lastFrameTime = Date.now();
 
-    function preloadImages(folder) {
-      images.length = 0;
+    function preloadImages(folderName) {
+      images = [];
+      const basePath = `sequences/${folderName}/`;
       for (let i = 0; i < frameCount; i++) {
         const img = new Image();
-        const paddedNumber = String(i).padStart(5, "0");
-        const folderName = folder.replace("/", "");
-        img.src = folder + folderName + "_" + paddedNumber + ".webp";
+        img.src = `${basePath}${folderName}_${String(i).padStart(5,'0')}.webp`;
         images.push(img);
       }
+      seqSwitchBtn.textContent = folderName;
+      seqSwitchBtn.classList.add('active');
+      setTimeout(() => seqSwitchBtn.classList.remove('active'), 200);
     }
+    seqSwitchBtn.addEventListener('click', () => {
+      currentSeqIndex = (currentSeqIndex + 1) % sequenceFolders.length;
+      preloadImages(sequenceFolders[currentSeqIndex]);
+      currentFrame = 0;
+    });
 
-    function updateOverlay() {
-      if (images.length > 0) {
-        overlay.src = images[currentOverlayIndex].src;
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentFacing, width: { ideal: 360 }, height: { ideal: 640 } },
+          audio: false
+        });
+        video.srcObject = stream;
+        video.addEventListener('loadedmetadata', () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          renderLoop();
+        });
+      } catch (e) {
+        alert('無法存取鏡頭：'+e.message);
       }
     }
 
-    function startOverlayAnimation() {
-      if (animationInterval) clearInterval(animationInterval);
-      animationInterval = setInterval(() => {
-        currentOverlayIndex = (currentOverlayIndex + 1) % images.length;
-        updateOverlay();
-      }, 33);
+    function renderLoop() {
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const now = Date.now();
+      if (now - lastFrameTime >= frameInterval) {
+        currentFrame = (currentFrame+1) % images.length;
+        lastFrameTime = now;
+      }
+      const seqImg = images[currentFrame];
+      if (seqImg.complete) {
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(seqImg,0,0,canvas.width,canvas.height);
+        ctx.globalAlpha = 1;
+      }
+      requestAnimationFrame(renderLoop);
     }
 
-    function cycleImageSequence() {
-      currentFolderIndex = (currentFolderIndex + 1) % imageFolders.length;
-      const newFolder = imageFolders[currentFolderIndex];
-      preloadImages(newFolder);
-      currentOverlayIndex = 0;
-      updateOverlay();
-    }
+    captureBtn.addEventListener('click', ()=>{
+      const dataURL = canvas.toDataURL('image/png');
+      downloadLink.href = dataURL;
+      downloadLink.textContent = '點此下載';
+    });
 
-    // 初始化
+    preloadImages(sequenceFolders[currentSeqIndex]);
     startCamera();
-    preloadImages(imageFolders[currentFolderIndex]);
-    startOverlayAnimation();
   </script>
 </body>
 </html>
