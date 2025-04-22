@@ -30,24 +30,27 @@
       object-fit: cover;
       border-radius: 20px;
     }
-    #canvas, #photo, #overlay {
+    #canvas, #overlay {
       pointer-events: none;
     }
-
+    #photo {
+      z-index: 10;
+      pointer-events: none;
+    }
     .controls {
       position: absolute;
       bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      justify-content: space-evenly;  /* 將按鈕水平排列 */
-      width: 100%;  /* 讓按鈕容器佔滿寬度 */
+      justify-content: space-evenly;
+      width: 100%;
       padding: 10px;
       background: rgba(0, 0, 0, 0.5);
       border-radius: 30px;
       backdrop-filter: blur(8px);
+      z-index: 20;
     }
-
     button {
       width: 60px;
       height: 60px;
@@ -60,7 +63,6 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: all 0.2s;
     }
-
     button:hover {
       transform: scale(1.1);
     }
@@ -70,8 +72,8 @@
   <div id="container">
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" style="display: none;"></canvas>
-    <img id="photo" style="display: none;" />
     <img id="overlay" />
+    <img id="photo" style="display: none;" />
     <div class="controls">
       <button onclick="takePhoto()">拍照</button>
       <button onclick="retakePhoto()">重拍</button>
@@ -134,30 +136,29 @@
     }
 
     function takePhoto() {
-  const context = canvas.getContext("2d");
-  canvas.width = OVERLAY_WIDTH;
-  canvas.height = OVERLAY_HEIGHT;
+      const context = canvas.getContext("2d");
+      canvas.width = OVERLAY_WIDTH;
+      canvas.height = OVERLAY_HEIGHT;
 
-  context.save();
+      context.save();
 
-  if (facingMode === "user") {
-    context.translate(OVERLAY_WIDTH, 0);
-    context.scale(-1, 1);
-  }
+      if (facingMode === "user") {
+        context.translate(OVERLAY_WIDTH, 0);
+        context.scale(-1, 1);
+      }
 
-  context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
+      context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
 
-  // 加上貼圖（當下動畫畫面）
-  if (images.length > 0) {
-    context.drawImage(images[currentOverlayIndex], 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
-  }
+      if (images.length > 0) {
+        context.drawImage(images[currentOverlayIndex], 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
+      }
 
-  context.restore();
+      context.restore();
 
-  const data = canvas.toDataURL("image/png");
-  photo.src = data;
-  photo.style.display = "block";
-}
+      const data = canvas.toDataURL("image/png");
+      photo.src = data;
+      photo.style.display = "block";
+    }
 
     function retakePhoto() {
       photo.style.display = "none";
