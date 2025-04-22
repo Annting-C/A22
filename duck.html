@@ -151,30 +151,31 @@
     }
 
     function takePhoto() {
-      const context = canvas.getContext("2d");
-      canvas.width = OVERLAY_WIDTH;
-      canvas.height = OVERLAY_HEIGHT;
+  const context = canvas.getContext("2d");
+  canvas.width = OVERLAY_WIDTH;
+  canvas.height = OVERLAY_HEIGHT;
 
-      context.save();
+  context.save();
 
-      if (facingMode === "user") {
-        context.scale(-1, 1);
-        context.drawImage(video, -OVERLAY_WIDTH, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
-      } else {
-        context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
-      }
+  if (facingMode === "user") {
+    context.translate(OVERLAY_WIDTH, 0);
+    context.scale(-1, 1);
+  }
 
-      // 將目前的貼圖也畫到照片中
-      if (images.length > 0) {
-        context.drawImage(images[currentOverlayIndex], 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
-      }
+  context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
 
-      context.restore();
+  // 同樣大小的 overlay 貼上
+  if (images.length > 0) {
+    context.drawImage(images[currentOverlayIndex], 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
+  }
 
-      const data = canvas.toDataURL("image/png");
-      photo.src = data;
-      photo.style.display = "block";
-    }
+  context.restore();
+
+  const data = canvas.toDataURL("image/png");
+  photo.src = data;
+  photo.style.display = "block";
+}
+
 
     function retakePhoto() {
       photo.style.display = "none";
