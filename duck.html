@@ -2,24 +2,32 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>相機與貼圖</title>
   <style>
     * {
       box-sizing: border-box;
     }
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      height: 100%;
       font-family: 'Helvetica Neue', sans-serif;
       background: #000;
       color: white;
       overflow: hidden;
+      touch-action: manipulation;
     }
+
     #container {
       position: relative;
       width: 100vw;
       height: 100vh;
     }
+
     video, canvas, img {
       position: absolute;
       width: 360px;
@@ -30,32 +38,37 @@
       object-fit: cover;
       border-radius: 20px;
     }
+
     #canvas, #photo, #overlay {
       pointer-events: none;
     }
 
     .controls {
       position: absolute;
-      bottom: 30px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      justify-content: space-evenly;  /* 將按鈕水平排列 */
-      width: 100%;  /* 讓按鈕容器佔滿寬度 */
-      padding: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+      padding: 10px 12px;
       background: rgba(0, 0, 0, 0.5);
-      border-radius: 30px;
+      border-radius: 20px;
       backdrop-filter: blur(8px);
     }
 
     button {
-      width: 60px;
-      height: 60px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       border: none;
       background: #ff9900;
       color: white;
-      font-size: 14px;
+      font-size: 16px;
+      font-weight: bold;
       cursor: pointer;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: all 0.2s;
@@ -63,6 +76,10 @@
 
     button:hover {
       transform: scale(1.1);
+    }
+
+    button:active {
+      transform: scale(0.95);
     }
   </style>
 </head>
@@ -77,7 +94,7 @@
       <button onclick="retakePhoto()">重拍</button>
       <button onclick="switchCamera()">切鏡</button>
       <button onclick="downloadPhoto()">下載</button>
-      <button onclick="cycleImageSequence()">換貼圖</button>
+      <button onclick="cycleImageSequence()">貼圖</button>
     </div>
   </div>
 
@@ -140,17 +157,16 @@
 
       context.save();
 
-      const scale = 1; // 保持原比例
-      const offsetX = 0;
-      const offsetY = 0;
-      const drawWidth = OVERLAY_WIDTH * scale;
-      const drawHeight = OVERLAY_HEIGHT * scale;
-
       if (facingMode === "user") {
         context.scale(-1, 1);
-        context.drawImage(video, -OVERLAY_WIDTH + offsetX, offsetY, drawWidth, drawHeight);
+        context.drawImage(video, -OVERLAY_WIDTH, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
       } else {
-        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+        context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
+      }
+
+      // 將目前的貼圖也畫到照片中
+      if (images.length > 0) {
+        context.drawImage(images[currentOverlayIndex], 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
       }
 
       context.restore();
@@ -158,13 +174,11 @@
       const data = canvas.toDataURL("image/png");
       photo.src = data;
       photo.style.display = "block";
-
-      // 在拍照時顯示與鏡頭相同大小的貼圖
-      updateOverlay();
     }
 
     function retakePhoto() {
       photo.style.display = "none";
+      overlay.style.display = "none";
     }
 
     function switchCamera() {
@@ -181,11 +195,18 @@
 
     function preloadImages(folder) {
       images.length = 0;
+      let loaded = 0;
       for (let i = 0; i < frameCount; i++) {
         const img = new Image();
         const paddedNumber = String(i).padStart(5, "0");
         const folderName = folder.replace("/", "");
         img.src = folder + folderName + "_" + paddedNumber + ".webp";
+        img.onload = () => {
+          loaded++;
+          if (loaded === frameCount) {
+            updateOverlay();
+          }
+        };
         images.push(img);
       }
     }
@@ -193,7 +214,7 @@
     function updateOverlay() {
       if (images.length > 0) {
         overlay.src = images[currentOverlayIndex].src;
-        overlay.style.display = "block"; // 顯示貼圖
+        overlay.style.display = "block";
       }
     }
 
@@ -210,7 +231,6 @@
       const newFolder = imageFolders[currentFolderIndex];
       preloadImages(newFolder);
       currentOverlayIndex = 0;
-      updateOverlay();
     }
 
     // 初始化
