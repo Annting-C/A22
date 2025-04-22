@@ -22,8 +22,8 @@
     }
     video, canvas, img {
       position: absolute;
-      width: 360px; /* 9:16 比例寬度 */
-      height: 640px; /* 9:16 比例高度 */
+      width: 360px;
+      height: 640px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -33,21 +33,19 @@
     #canvas, #photo, #overlay {
       pointer-events: none;
     }
-
     .controls {
       position: absolute;
       bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      justify-content: space-evenly;  
-      width: 100%;  
+      justify-content: space-evenly;
+      width: 100%;
       padding: 10px;
       background: rgba(0, 0, 0, 0.5);
       border-radius: 30px;
       backdrop-filter: blur(8px);
     }
-
     button {
       width: 60px;
       height: 60px;
@@ -60,7 +58,6 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: all 0.2s;
     }
-
     button:hover {
       transform: scale(1.1);
     }
@@ -82,8 +79,8 @@
   </div>
 
   <script>
-    const OVERLAY_WIDTH = 360;  // 9:16 比例寬度
-    const OVERLAY_HEIGHT = 640;  // 9:16 比例高度
+    const OVERLAY_WIDTH = 360;
+    const OVERLAY_HEIGHT = 640;
 
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
@@ -126,6 +123,7 @@
         video.style.transform = facingMode === "user"
           ? "translate(-50%, -50%) scaleX(-1)"
           : "translate(-50%, -50%)";
+
       } catch (err) {
         alert("無法開啟相機：" + err.message);
         console.error(err);
@@ -134,28 +132,44 @@
 
     function takePhoto() {
       const context = canvas.getContext("2d");
-      canvas.width = OVERLAY_WIDTH;
-      canvas.height = OVERLAY_HEIGHT;
+
+      const sourceW = video.videoWidth;
+      const sourceH = video.videoHeight;
+
+      const targetW = OVERLAY_WIDTH;
+      const targetH = OVERLAY_HEIGHT;
+
+      const offsetX = (sourceW - targetW) / 2;
+      const offsetY = (sourceH - targetH) / 2;
+
+      canvas.width = targetW;
+      canvas.height = targetH;
 
       context.save();
 
-      const scale = 1;  // 保持原比例
-      const offsetX = 0;
-      const offsetY = 0;
-      const drawWidth = OVERLAY_WIDTH * scale;
-      const drawHeight = OVERLAY_HEIGHT * scale;
-
       if (facingMode === "user") {
+        context.translate(targetW, 0);
         context.scale(-1, 1);
-        context.drawImage(video, -OVERLAY_WIDTH + offsetX, offsetY, drawWidth, drawHeight);
-      } else {
-        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+      }
+
+      context.drawImage(
+        video,
+        offsetX, offsetY,
+        targetW, targetH,
+        0, 0,
+        targetW, targetH
+      );
+
+      if (images.length > 0) {
+        context.drawImage(images[currentOverlayIndex], 0, 0, targetW, targetH);
       }
 
       context.restore();
 
       const data = canvas.toDataURL("image/png");
       photo.src = data;
+      photo.style.width = `${targetW}px`;
+      photo.style.height = `${targetH}px`;
       photo.style.display = "block";
     }
 
@@ -189,6 +203,10 @@
     function updateOverlay() {
       if (images.length > 0) {
         overlay.src = images[currentOverlayIndex].src;
+        overlay.style.display = "block";
+        overlay.style.transform = facingMode === "user"
+          ? "translate(-50%, -50%) scaleX(-1)"
+          : "translate(-50%, -50%)";
       }
     }
 
