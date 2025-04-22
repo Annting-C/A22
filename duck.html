@@ -158,13 +158,15 @@
   context.save();
 
   if (facingMode === "user") {
+    // 左右鏡像畫面
     context.translate(OVERLAY_WIDTH, 0);
     context.scale(-1, 1);
   }
 
+  // 畫相機畫面
   context.drawImage(video, 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
 
-  // 同樣大小的 overlay 貼上
+  // 貼圖也畫進來（保持一致鏡像）
   if (images.length > 0) {
     context.drawImage(images[currentOverlayIndex], 0, 0, OVERLAY_WIDTH, OVERLAY_HEIGHT);
   }
@@ -175,6 +177,7 @@
   photo.src = data;
   photo.style.display = "block";
 }
+
 
 
     function retakePhoto() {
