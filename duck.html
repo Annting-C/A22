@@ -39,8 +39,8 @@
       border-radius: 20px;
       z-index: 1;
     }
-    #video { z-index: 1; display: none; }
-    #canvas { z-index: 2; display: block; }
+    #video { z-index: 1; display: block; }
+    #canvas { z-index: 2; display: none; }
     /* 控制按鈕 */
     .controls {
       position: absolute;
@@ -110,8 +110,10 @@
         video.onloadedmetadata = () => {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
-          renderLoop();
-        };
+          // 預設播放視訊，自動顯示 video
+          video.style.display = 'block';
+          canvas.style.display = 'none';
+          renderLoop();        };
       } catch (e) {
         alert('無法存取鏡頭：' + e.message);
       }
@@ -161,8 +163,11 @@
 
     // 拍照功能
     captureBtn.addEventListener('click', () => {
+      // 捕捉畫面並顯示 canvas
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.style.display = 'inline-block';
+      video.style.display = 'none';
+      canvas.style.display = 'block';
     });
 
     // 初始化
