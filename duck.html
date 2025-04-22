@@ -16,23 +16,28 @@
     }
     /* 標題 */
     #pageTitle {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      font-size: 20px; font-weight: bold; letter-spacing: 2px;
+      position: absolute;
+      top: 20px; left: 50%; transform: translateX(-50%);
+      font-size: 28px; font-weight: bold; letter-spacing: 2px;
       z-index: 5; color: #fff; pointer-events: none;
     }
-    /* 隱藏 video，canvas 顯示預覽 */
+    /* Canvas 與 Video 覆蓋顯示 */
     .media {
-      position: absolute; top: calc(50% + 30px); left: 50%;
-      width: 360px; height: 640px;
+      position: absolute;
+      top: calc(50% + 30px);
+      left: 50%;
+      width: 360px;
+      height: 640px;
       transform: translate(-50%, -50%) scaleX(-1);
-      object-fit: cover; border-radius: 20px;
-      z-index: 1;
+      object-fit: cover;
+      border-radius: 20px;
     }
-    #video { display: none; }
-    #canvas { display: block; z-index: 2; }
+    #video { z-index: 1; display: block; }
+    #canvas { z-index: 10; display: block; }
     /* 控制按鈕 */
     .controls {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      position: absolute;
+      bottom: 20px; left: 50%; transform: translateX(-50%);
       display: flex; gap: 12px;
       background: rgba(0,0,0,0.5); padding: 8px;
       border-radius: 24px; justify-content: center;
@@ -50,13 +55,13 @@
 </head>
 <body>
   <div id="pageTitle">SKYWEAVER PASSAGE</div>
-  <video id="video" autoplay playsinline muted style="display:none;"></video>
+  <video id="video" class="media" autoplay playsinline muted></video>
   <canvas id="canvas" class="media"></canvas>
   <div class="controls">
     <button id="camSwitch" title="切換鏡頭">鏡頭</button>
     <button id="capture" title="拍照">拍照</button>
-    <button id="seqSwitch" class="active" title="切換序列">序列</button>
-    <a id="download" download="photo.png" style="display:none;" title="下載">下載</a>
+    <button id="seqSwitch" title="切換序列">序列</button>
+    <a id="download" download="photo.png" style="display:block;" title="下載">下載</a>
   </div>
   <script>
     const video = document.getElementById('video');
@@ -67,19 +72,19 @@
     const captureBtn = document.getElementById('capture');
     const downloadLink = document.getElementById('download');
 
-    // 前後鏡頭切換
-    let currentFacing = 'user', stream;
+    let currentFacing = 'user';
+    let stream;
+
     camSwitchBtn.addEventListener('click', () => {
       if (stream) stream.getTracks().forEach(track => track.stop());
-      currentFacing = currentFacing === 'user' ? 'environment' : 'user';
+      currentFacing = (currentFacing === 'user') ? 'environment' : 'user';
       startCamera();
     });
 
     async function startCamera() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacing, width: 360, height: 640 },
-          audio: false
+          video: { facingMode: currentFacing, width: 360, height: 640 }, audio: false
         });
         video.srcObject = stream;
         video.onloadedmetadata = () => {
@@ -92,14 +97,15 @@
       }
     }
 
-    // 序列圖片
     const sequenceFolders = ['Duck1','Duck2','Duck3','Duck4'];
     let currentSeqIndex = 0;
     const frameCount = 364;
     let images = [];
     let currentFrame = 0;
-    const fps = 30, frameInterval = 1000 / fps;
+    const fps = 30;
+    const frameInterval = 1000 / fps;
     let lastTime = Date.now();
+    let isPaused = false;  // 用於暫停動畫和循環
 
     function preloadImages(folder) {
       images = [];
@@ -110,16 +116,15 @@
         images.push(img);
       }
       seqSwitchBtn.textContent = folder;
-      seqSwitchBtn.classList.add('active');
-      setTimeout(() => seqSwitchBtn.classList.remove('active'), 200);
     }
+
     seqSwitchBtn.addEventListener('click', () => {
       currentSeqIndex = (currentSeqIndex + 1) % sequenceFolders.length;
       preloadImages(sequenceFolders[currentSeqIndex]);
     });
 
-    // 主渲染迴圈：canvas 預覽並疊加序列
     function renderLoop() {
+      if (isPaused) return; // 動畫暫停後不再執行
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const now = Date.now();
@@ -128,14 +133,24 @@
         currentFrame = (currentFrame + 1) % images.length;
       }
       const img = images[currentFrame];
-      if (img && img.complete) {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      }
+      if (img && img.complete) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       requestAnimationFrame(renderLoop);
     }
 
-    // 拍照功能：捕捉當下畫面與序列
     captureBtn.addEventListener('click', () => {
+      // 暫停動畫與鏡頭
+      isPaused = true;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      // 清除並重新繪製最終畫面
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const img = images[currentFrame];
+      if (img && img.complete) {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
+      // 顯示下載連結
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.style.display = 'inline-block';
     });
@@ -143,3 +158,6 @@
     // 初始化
     preloadImages(sequenceFolders[0]);
     startCamera();
+  </script>
+</body>
+</html>
