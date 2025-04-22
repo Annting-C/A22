@@ -12,6 +12,7 @@
       font-family: Arial, sans-serif;
       overflow: hidden;
       height: 100vh;
+      padding-top: 60px; /* 預留標題空間 */
     }
     /* 網頁最上方標題 */
     #pageTitle {
@@ -28,7 +29,8 @@
     }
     #video, #canvas {
       position: absolute;
-      top: 50%; left: 50%;
+      top: calc(50% + 30px); /* 向下偏移，避免與標題重疊 */
+      left: 50%;
       width: 360px; height: 640px;
       transform: translate(-50%, -50%) scaleX(-1);
       object-fit: cover;
@@ -38,7 +40,8 @@
     #canvas { pointer-events: none; }
     .controls {
       position: absolute;
-      bottom: 20px; left: 50%;
+      bottom: 20px;
+      left: 50%;
       transform: translateX(-50%);
       display: flex;
       gap: 10px;
