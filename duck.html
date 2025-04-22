@@ -124,6 +124,7 @@
     let currentSeqIndex = 0;
     const frameCount = 364;
     let currentFrame = 0;  // 當前序列索引
+    let images = []; // 存放預載的序列圖
     const fps = 30;            // 每秒30幀
     const frameInterval = 1000 / fps;
     let lastTime = Date.now();
@@ -163,11 +164,25 @@
 
     // 拍照功能
     captureBtn.addEventListener('click', () => {
-      // 捕捉畫面並顯示 canvas
-      downloadLink.href = canvas.toDataURL('image/png');
-      downloadLink.style.display = 'inline-block';
+      // 在按鈕點擊時繪製當前鏡頭與序列貼圖
+      if (!video.srcObject) return;
+      // 確保 canvas 尺寸
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      // 清除並繪製鏡頭畫面
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // 繪製當前序列幀
+      const img = images[currentFrame];
+      if (img && img.complete) {
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
+      // 顯示結果並隱藏預覽
       video.style.display = 'none';
       canvas.style.display = 'block';
+      // 顯示下載連結
+      downloadLink.href = canvas.toDataURL('image/png');
+      downloadLink.style.display = 'inline-block';
     });
 
     // 初始化
