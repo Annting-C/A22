@@ -33,19 +33,21 @@
     #canvas, #photo, #overlay {
       pointer-events: none;
     }
+
     .controls {
       position: absolute;
       bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      justify-content: space-evenly;
-      width: 100%;
+      justify-content: space-evenly;  /* 將按鈕水平排列 */
+      width: 100%;  /* 讓按鈕容器佔滿寬度 */
       padding: 10px;
       background: rgba(0, 0, 0, 0.5);
       border-radius: 30px;
       backdrop-filter: blur(8px);
     }
+
     button {
       width: 60px;
       height: 60px;
@@ -58,6 +60,7 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: all 0.2s;
     }
+
     button:hover {
       transform: scale(1.1);
     }
@@ -132,44 +135,28 @@
 
     function takePhoto() {
       const context = canvas.getContext("2d");
-
-      const sourceW = video.videoWidth;
-      const sourceH = video.videoHeight;
-
-      const targetW = OVERLAY_WIDTH;
-      const targetH = OVERLAY_HEIGHT;
-
-      const offsetX = (sourceW - targetW) / 2;
-      const offsetY = (sourceH - targetH) / 2;
-
-      canvas.width = targetW;
-      canvas.height = targetH;
+      canvas.width = OVERLAY_WIDTH;
+      canvas.height = OVERLAY_HEIGHT;
 
       context.save();
 
+      const scale = 0.3; // 縮小倍率
+      const offsetX = (OVERLAY_WIDTH * (1 - scale)) / 2;
+      const offsetY = (OVERLAY_HEIGHT * (1 - scale)) / 2;
+      const drawWidth = OVERLAY_WIDTH * scale;
+      const drawHeight = OVERLAY_HEIGHT * scale;
+
       if (facingMode === "user") {
-        context.translate(targetW, 0);
         context.scale(-1, 1);
-      }
-
-      context.drawImage(
-        video,
-        offsetX, offsetY,
-        targetW, targetH,
-        0, 0,
-        targetW, targetH
-      );
-
-      if (images.length > 0) {
-        context.drawImage(images[currentOverlayIndex], 0, 0, targetW, targetH);
+        context.drawImage(video, -OVERLAY_WIDTH + offsetX, offsetY, drawWidth, drawHeight);
+      } else {
+        context.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
       }
 
       context.restore();
 
       const data = canvas.toDataURL("image/png");
       photo.src = data;
-      photo.style.width = `${targetW}px`;
-      photo.style.height = `${targetH}px`;
       photo.style.display = "block";
     }
 
@@ -203,10 +190,6 @@
     function updateOverlay() {
       if (images.length > 0) {
         overlay.src = images[currentOverlayIndex].src;
-        overlay.style.display = "block";
-        overlay.style.transform = facingMode === "user"
-          ? "translate(-50%, -50%) scaleX(-1)"
-          : "translate(-50%, -50%)";
       }
     }
 
