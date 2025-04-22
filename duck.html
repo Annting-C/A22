@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>相機與貼圖</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: 'Helvetica Neue', sans-serif;
@@ -20,19 +18,23 @@
       width: 100vw;
       height: 100vh;
     }
+
+    /* ✅ 顯示尺寸縮小為 270×480 */
     video, canvas, img {
       position: absolute;
-      width: 360px;
-      height: 640px;
+      width: 270px;
+      height: 480px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       object-fit: cover;
       border-radius: 20px;
     }
+
     #canvas, #photo, #overlay {
       pointer-events: none;
     }
+
     .controls {
       position: absolute;
       bottom: 30px;
@@ -46,6 +48,7 @@
       border-radius: 30px;
       backdrop-filter: blur(8px);
     }
+
     button {
       width: 60px;
       height: 60px;
@@ -58,6 +61,7 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       transition: all 0.2s;
     }
+
     button:hover {
       transform: scale(1.1);
     }
@@ -152,6 +156,7 @@
         context.scale(-1, 1);
       }
 
+      // 相機中央裁切
       context.drawImage(
         video,
         offsetX, offsetY,
@@ -160,8 +165,17 @@
         targetW, targetH
       );
 
+      // 繪製對應貼圖（與顯示一致）
       if (images.length > 0) {
-        context.drawImage(images[currentOverlayIndex], 0, 0, targetW, targetH);
+        const overlayImg = images[currentOverlayIndex];
+
+        context.drawImage(
+          overlayImg,
+          0, 0,
+          overlayImg.naturalWidth, overlayImg.naturalHeight, // 原圖完整
+          0, 0,
+          targetW, targetH
+        );
       }
 
       context.restore();
