@@ -96,12 +96,27 @@
 
     // 鏡頭切換狀態
     let currentFacing = 'user';
+    let stream;
     camSwitchBtn.addEventListener('click', () => {
       stopCamera();
       currentFacing = currentFacing === 'user' ? 'environment' : 'user';
       camSwitchBtn.textContent = currentFacing === 'user' ? '前鏡頭' : '後鏡頭';
       startCamera();
     });
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentFacing, width: { ideal: 360 }, height: { ideal: 640 } },
+          audio: false
+        });
+        video.srcObject = stream;
+      } catch (e) {
+        alert('無法存取鏡頭：' + e.message);
+      }
+    }
+    function stopCamera() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    }
 
     // 序列資料夾與動畫參數
     const sequenceFolders = ['Duck1','Duck2','Duck3','Duck4'];
@@ -130,23 +145,6 @@
       preloadImages(sequenceFolders[currentSeqIndex]);
     });
 
-    // 啟動與停止鏡頭
-    let stream;
-    async function startCamera() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacing, width: { ideal: 360 }, height: { ideal: 640 } },
-          audio: false
-        });
-        video.srcObject = stream;
-      } catch (e) {
-        alert('無法存取鏡頭：'+e.message);
-      }
-    }
-    function stopCamera() {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-    }
-
     // 計算當前序列幀
     function getCurrentFrame() {
       const elapsed = Date.now() - seqStartTime;
@@ -155,13 +153,13 @@
 
     // 捕捉畫面
     captureBtn.addEventListener('click', () => {
+      if (!video.srcObject) return;
       // 設定 canvas 大小
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      // 畫影片
+      // 繪製影片與序列圖到 canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      // 畫序列圖
       const frameIndex = getCurrentFrame();
       const seqImg = images[frameIndex];
       if (seqImg && seqImg.complete) {
@@ -169,8 +167,11 @@
         ctx.drawImage(seqImg, 0, 0, canvas.width, canvas.height);
         ctx.globalAlpha = 1;
       }
-      // 顯示 canvas 和下載
+      // 隱藏預覽並顯示結果
+      video.style.display = 'none';
       canvas.style.display = 'block';
+      canvas.style.zIndex = 4;
+      // 顯示下載連結
       downloadLink.style.display = 'inline-block';
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.textContent = '點此下載';
