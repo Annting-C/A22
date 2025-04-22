@@ -39,9 +39,11 @@
       border-radius: 20px;
       z-index: 1;
     }
+    /* Canvas 預設顯示 */
     #canvas {
-      display: none; /* 預設隱藏 */
+      display: block;
       pointer-events: none;
+      z-index: 2;
     }
     .controls {
       position: absolute;
@@ -56,7 +58,7 @@
       flex-wrap: wrap;
       justify-content: center;
       max-width: 380px;
-      z-index: 2;
+      z-index: 3;
     }
     .controls button,
     .controls a {
@@ -143,7 +145,6 @@
       seqSwitchBtn.classList.add('active');
       setTimeout(() => seqSwitchBtn.classList.remove('active'), 200);
     }
-
     seqSwitchBtn.addEventListener('click', () => {
       currentSeqIndex = (currentSeqIndex + 1) % sequenceFolders.length;
       preloadImages(sequenceFolders[currentSeqIndex]);
@@ -169,7 +170,6 @@
         ctx.globalAlpha = 1;
       }
       video.style.display = 'none';
-      canvas.style.display = 'block';
       canvas.style.zIndex = 4;
       downloadLink.style.display = 'inline-block';
       downloadLink.href = canvas.toDataURL('image/png');
