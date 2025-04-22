@@ -3,247 +3,161 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>相機與貼圖</title>
+  <title>拍照＋Croppie裁切＋下載</title>
+
+  <!-- Croppie -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/croppie/2.6.5/croppie.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: 'Helvetica Neue', sans-serif;
+      font-family: sans-serif;
       background: #000;
       color: white;
-      overflow: hidden;
+      text-align: center;
+      padding: 20px;
     }
-    #container {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-    }
-
-    /* ✅ 顯示尺寸縮小為 270×480 */
-    video, canvas, img {
-      position: absolute;
+    #video {
       width: 270px;
       height: 480px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      object-fit: cover;
       border-radius: 20px;
+      object-fit: cover;
     }
-
-    #canvas, #photo, #overlay {
-      pointer-events: none;
+    #canvas {
+      display: none;
     }
-
-    .controls {
-      position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      justify-content: space-evenly;
-      width: 100%;
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 30px;
-      backdrop-filter: blur(8px);
+    #photo {
+      display: none;
     }
-
-    button {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      border: none;
+    #oldImg, #newImg {
+      margin: 20px auto;
+    }
+    .btn {
       background: #ff9900;
       color: white;
-      font-size: 14px;
+      padding: 10px 20px;
+      border: none;
+      margin: 10px;
+      border-radius: 8px;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      transition: all 0.2s;
     }
-
-    button:hover {
-      transform: scale(1.1);
+    .btn:hover {
+      background: #e28a00;
     }
   </style>
 </head>
 <body>
-  <div id="container">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display: none;"></canvas>
-    <img id="photo" style="display: none;" />
-    <img id="overlay" />
-    <div class="controls">
-      <button onclick="takePhoto()">拍照</button>
-      <button onclick="retakePhoto()">重拍</button>
-      <button onclick="switchCamera()">切鏡</button>
-      <button onclick="downloadPhoto()">下載</button>
-      <button onclick="cycleImageSequence()">換濾鏡</button>
-    </div>
-  </div>
+
+  <h2>📷 拍照 + Croppie 裁切 + 下載</h2>
+
+  <!-- 相機畫面 -->
+  <video id="video" autoplay playsinline></video><br>
+  <button class="btn" onclick="takePhoto()">拍照</button>
+
+  <!-- canvas 暫存 -->
+  <canvas id="canvas" width="360" height="640"></canvas>
+  <img id="photo" />
+
+  <!-- Croppie 裁切區 -->
+  <div id="oldImg" style="display: none;"></div>
+  <button id="crop_img" class="btn" style="display: none;">✂️ 裁剪圖片</button>
+  <button id="download_img" class="btn" style="display: none;">⬇️ 下載裁切圖片</button>
+
+  <!-- 輸出結果區 -->
+  <div id="newImgInfo"></div>
+  <div id="newImg"></div>
 
   <script>
-    const OVERLAY_WIDTH = 360;
-    const OVERLAY_HEIGHT = 640;
-
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const photo = document.getElementById("photo");
-    const overlay = document.getElementById("overlay");
 
-    const imageFolders = ["Duck1/", "Duck2/", "Duck3/", "Duck4/"];
-    let currentFolderIndex = 0;
-    let frameCount = 364;
-    let currentOverlayIndex = 0;
-    let animationInterval = null;
-    const images = [];
+    let myCrop;
+    const width_crop = 270;
+    const height_crop = 380;
+    const compress_ratio = 0.85;
+    const type_img = "jpeg";
 
-    let currentStream = null;
-    let facingMode = "user";
-
+    // 啟用相機
     async function startCamera() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: facingMode,
-            width: { ideal: OVERLAY_WIDTH },
-            height: { ideal: OVERLAY_HEIGHT }
+            facingMode: "user",
+            width: { ideal: 360 },
+            height: { ideal: 640 }
           },
           audio: false
         });
-
-        currentStream = stream;
         video.srcObject = stream;
-
-        video.onloadedmetadata = () => {
-          canvas.width = OVERLAY_WIDTH;
-          canvas.height = OVERLAY_HEIGHT;
-        };
-
-        video.style.transform = facingMode === "user"
-          ? "translate(-50%, -50%) scaleX(-1)"
-          : "translate(-50%, -50%)";
-
       } catch (err) {
         alert("無法開啟相機：" + err.message);
         console.error(err);
       }
     }
 
+    // 拍照後送進 Croppie
     function takePhoto() {
       const context = canvas.getContext("2d");
-
-      const sourceW = video.videoWidth;
-      const sourceH = video.videoHeight;
-
-      const targetW = OVERLAY_WIDTH;
-      const targetH = OVERLAY_HEIGHT;
-
-      const offsetX = (sourceW - targetW) / 2;
-      const offsetY = (sourceH - targetH) / 2;
-
-      canvas.width = targetW;
-      canvas.height = targetH;
-
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       context.save();
-
-      if (facingMode === "user") {
-        context.translate(targetW, 0);
-        context.scale(-1, 1);
-      }
-
-      // 相機中央裁切
-      context.drawImage(
-        video,
-        offsetX, offsetY,
-        targetW, targetH,
-        0, 0,
-        targetW, targetH
-      );
-
-      // 繪製對應貼圖（與顯示一致）
-      if (images.length > 0) {
-        const overlayImg = images[currentOverlayIndex];
-
-        context.drawImage(
-          overlayImg,
-          0, 0,
-          overlayImg.naturalWidth, overlayImg.naturalHeight, // 原圖完整
-          0, 0,
-          targetW, targetH
-        );
-      }
-
+      context.translate(canvas.width, 0); // 鏡像
+      context.scale(-1, 1);
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
       context.restore();
 
-      const data = canvas.toDataURL("image/png");
-      photo.src = data;
-      photo.style.width = `${targetW}px`;
-      photo.style.height = `${targetH}px`;
+      const dataURL = canvas.toDataURL("image/png");
+      photo.src = dataURL;
       photo.style.display = "block";
-    }
 
-    function retakePhoto() {
-      photo.style.display = "none";
-    }
+      $("#oldImg").show();
+      $("#crop_img").show();
 
-    function switchCamera() {
-      facingMode = facingMode === "user" ? "environment" : "user";
-      startCamera();
-    }
-
-    function downloadPhoto() {
-      const link = document.createElement("a");
-      link.download = "photo.png";
-      link.href = photo.src;
-      link.click();
-    }
-
-    function preloadImages(folder) {
-      images.length = 0;
-      for (let i = 0; i < frameCount; i++) {
-        const img = new Image();
-        const paddedNumber = String(i).padStart(5, "0");
-        const folderName = folder.replace("/", "");
-        img.src = folder + folderName + "_" + paddedNumber + ".webp";
-        images.push(img);
+      if (!myCrop) {
+        myCrop = $("#oldImg").croppie({
+          viewport: {
+            width: width_crop,
+            height: height_crop,
+            type: "square"
+          },
+          boundary: {
+            width: 350,
+            height: 500
+          }
+        });
       }
+
+      myCrop.croppie("bind", { url: dataURL });
     }
 
-    function updateOverlay() {
-      if (images.length > 0) {
-        overlay.src = images[currentOverlayIndex].src;
-        overlay.style.display = "block";
-        overlay.style.transform = facingMode === "user"
-          ? "translate(-50%, -50%) scaleX(-1)"
-          : "translate(-50%, -50%)";
-      }
-    }
+    // 裁切圖片 + 顯示 + 下載
+    $("#crop_img").on("click", function () {
+      myCrop.croppie("result", {
+        type: "canvas",
+        format: type_img,
+        quality: compress_ratio
+      }).then(function (src) {
+        $("#newImg").html("<img src='" + src + "' style='max-width: 100%; border-radius: 8px;' />");
+        const filesize = Math.round((src.length * 0.75) / 1000);
+        const info = `<p>裁切圖片尺寸：${width_crop}×${height_crop}</p><p>檔案大小約：${filesize} KB</p>`;
+        $("#newImgInfo").html(info);
 
-    function startOverlayAnimation() {
-      if (animationInterval) clearInterval(animationInterval);
-      animationInterval = setInterval(() => {
-        currentOverlayIndex = (currentOverlayIndex + 1) % images.length;
-        updateOverlay();
-      }, 33);
-    }
+        $("#download_img").show();
+        $("#download_img").off("click").on("click", function () {
+          const link = document.createElement("a");
+          link.href = src;
+          link.download = "cropped_image.jpeg";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      });
+    });
 
-    function cycleImageSequence() {
-      currentFolderIndex = (currentFolderIndex + 1) % imageFolders.length;
-      const newFolder = imageFolders[currentFolderIndex];
-      preloadImages(newFolder);
-      currentOverlayIndex = 0;
-      updateOverlay();
-    }
-
-    // 初始化
     startCamera();
-    preloadImages(imageFolders[currentFolderIndex]);
-    startOverlayAnimation();
   </script>
 </body>
 </html>
