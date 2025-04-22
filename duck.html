@@ -27,15 +27,21 @@
       color: #fff;
       pointer-events: none;
     }
-    #video, #canvas {
+    /* 缩放比例 */
+    .media {
       position: absolute;
-      top: calc(50% + 30px); /* 向下偏移，避免與標題重疊 */
+      top: calc(50% + 30px);
       left: 50%;
-      width: 360px; height: 640px;
-      transform: translate(-50%, -50%) scaleX(-1);
+      width: 360px;
+      height: 640px;
+      transform: translate(-50%, -50%) scaleX(-1) scale(0.8);
+      transform-origin: center;
       object-fit: cover;
       border-radius: 20px;
       z-index: 1;
+    }
+    #video, #canvas {
+      /* 共用媒体类 */
     }
     #canvas { pointer-events: none; }
     .controls {
@@ -75,8 +81,8 @@
 </head>
 <body>
   <div id="pageTitle">SKYWEAVER PASSAGE</div>
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas"></canvas>
+  <video id="video" class="media" autoplay playsinline muted></video>
+  <canvas id="canvas" class="media"></canvas>
   <div class="controls">
     <button id="camSwitch">前鏡頭</button>
     <button id="seqSwitch" class="active">Duck1</button>
