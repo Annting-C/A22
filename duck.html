@@ -16,32 +16,57 @@
     }
     /* 標題 */
     #pageTitle {
-      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-      font-size: 28px; font-weight: bold; letter-spacing: 2px;
-      z-index: 5; color: #fff; pointer-events: none;
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 28px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      z-index: 5;
+      color: #fff;
+      pointer-events: none;
     }
     /* 視訊與畫布 */
     .media {
-      position: absolute; top: calc(50% + 30px); left: 50%;
-      width: 288px; height: 512px;
+      position: absolute;
+      top: calc(50% + 30px);
+      left: 50%;
+      width: 360px;   /* 與鏡頭畫面一致 */
+      height: 640px;  /* 與鏡頭畫面一致 */
       transform: translate(-50%, -50%) scaleX(-1);
-      object-fit: cover; border-radius: 20px;
+      object-fit: cover;
+      border-radius: 20px;
+      z-index: 1;
     }
     #video { z-index: 1; display: none; }
     #canvas { z-index: 2; display: block; }
     /* 控制按鈕 */
     .controls {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 12px;
-      background: rgba(0,0,0,0.5); padding: 8px;
-      border-radius: 24px; justify-content: center;
-      align-items: center; z-index: 10;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      background: rgba(0,0,0,0.5);
+      padding: 8px;
+      border-radius: 24px;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
     }
     .controls button, .controls a {
-      width: 48px; height: 48px; line-height: 48px;
-      text-align: center; font-size: 14px;
-      background: #FFA500; color: #fff;
-      border: none; border-radius: 50%; cursor: pointer;
+      width: 48px;
+      height: 48px;
+      line-height: 48px;
+      text-align: center;
+      font-size: 14px;
+      background: #FFA500;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
       text-decoration: none;
     }
     .controls button:hover, .controls a:hover { background: #e69500; }
@@ -67,16 +92,19 @@
     const downloadLink = document.getElementById('download');
 
     // 前後鏡頭切換
-    let currentFacing = 'user'; let stream;
+    let currentFacing = 'user';
+    let stream;
     camSwitchBtn.addEventListener('click', () => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (stream) stream.getTracks().forEach(track => track.stop());
       currentFacing = currentFacing === 'user' ? 'environment' : 'user';
       startCamera();
     });
+
     async function startCamera() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacing, width: 360, height: 640 }, audio: false
+          video: { facingMode: currentFacing, width: 360, height: 640 },
+          audio: false
         });
         video.srcObject = stream;
         video.onloadedmetadata = () => {
@@ -84,16 +112,18 @@
           canvas.height = video.videoHeight;
           renderLoop();
         };
-      } catch (e) { alert('無法存取鏡頭：' + e.message); }
+      } catch (e) {
+        alert('無法存取鏡頭：' + e.message);
+      }
     }
 
-    // 序列
+    // 序列圖片
     const sequenceFolders = ['Duck1','Duck2','Duck3','Duck4'];
     let currentSeqIndex = 0;
     const frameCount = 364;
     let images = [];
-    const fps = 24;                
-    const frameInterval = 150 / fps;
+    const fps = 30;            // 每秒30幀
+    const frameInterval = 1000 / fps;
     let lastTime = Date.now();
 
     function preloadImages(folder) {
@@ -105,14 +135,15 @@
         images.push(img);
       }
       seqSwitchBtn.textContent = folder;
-      seqSwitchBtn.classList.add('active'); setTimeout(() => seqSwitchBtn.classList.remove('active'), 200);
+      seqSwitchBtn.classList.add('active');
+      setTimeout(() => seqSwitchBtn.classList.remove('active'), 200);
     }
     seqSwitchBtn.addEventListener('click', () => {
       currentSeqIndex = (currentSeqIndex + 1) % sequenceFolders.length;
       preloadImages(sequenceFolders[currentSeqIndex]);
     });
 
-    // 主迴圈
+    // 主渲染迴圈
     function renderLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -130,7 +161,7 @@
       requestAnimationFrame(renderLoop);
     }
 
-    // 拍照
+    // 拍照功能
     captureBtn.addEventListener('click', () => {
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.style.display = 'inline-block';
