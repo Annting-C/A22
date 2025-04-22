@@ -16,57 +16,33 @@
     }
     /* 標題 */
     #pageTitle {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 28px;
-      font-weight: bold;
-      letter-spacing: 2px;
-      z-index: 5;
-      color: #fff;
-      pointer-events: none;
+      position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      font-size: 20px; font-weight: bold; letter-spacing: 2px;
+      z-index: 5; color: #fff; pointer-events: none;
     }
-    /* 視訊與畫布 */
+    /* 隱藏 video，canvas 顯示預覽 */
     .media {
-      position: absolute;
-      top: calc(50% + 30px);
-      left: 50%;
-      width: 360px;   /* 與鏡頭畫面一致 */
-      height: 640px;  /* 與鏡頭畫面一致 */
+      position: absolute; top: calc(50% + 30px); left: 50%;
+      width: 360px; height: 640px;
       transform: translate(-50%, -50%) scaleX(-1);
-      object-fit: cover;
-      border-radius: 20px;
+      object-fit: cover; border-radius: 20px;
       z-index: 1;
     }
-    #video { z-index: 1; display: block; }
-    #canvas { z-index: 2; display: none; }
+    #video { display: none; }
+    #canvas { display: block; z-index: 2; }
     /* 控制按鈕 */
     .controls {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 12px;
-      background: rgba(0,0,0,0.5);
-      padding: 8px;
-      border-radius: 24px;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 12px;
+      background: rgba(0,0,0,0.5); padding: 8px;
+      border-radius: 24px; justify-content: center;
+      align-items: center; z-index: 10;
     }
     .controls button, .controls a {
-      width: 48px;
-      height: 48px;
-      line-height: 48px;
-      text-align: center;
-      font-size: 14px;
-      background: #FFA500;
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      cursor: pointer;
+      width: 48px; height: 48px; line-height: 48px;
+      text-align: center; font-size: 14px;
+      background: #FFA500; color: #fff;
+      border: none; border-radius: 50%; cursor: pointer;
       text-decoration: none;
     }
     .controls button:hover, .controls a:hover { background: #e69500; }
@@ -74,7 +50,7 @@
 </head>
 <body>
   <div id="pageTitle">SKYWEAVER PASSAGE</div>
-  <video id="video" class="media" autoplay playsinline muted></video>
+  <video id="video" autoplay playsinline muted style="display:none;"></video>
   <canvas id="canvas" class="media"></canvas>
   <div class="controls">
     <button id="camSwitch" title="切換鏡頭">鏡頭</button>
@@ -92,8 +68,7 @@
     const downloadLink = document.getElementById('download');
 
     // 前後鏡頭切換
-    let currentFacing = 'user';
-    let stream;
+    let currentFacing = 'user', stream;
     camSwitchBtn.addEventListener('click', () => {
       if (stream) stream.getTracks().forEach(track => track.stop());
       currentFacing = currentFacing === 'user' ? 'environment' : 'user';
@@ -110,10 +85,8 @@
         video.onloadedmetadata = () => {
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
-          // 預設播放視訊，自動顯示 video
-          video.style.display = 'block';
-          canvas.style.display = 'none';
-          renderLoop();        };
+          renderLoop();
+        };
       } catch (e) {
         alert('無法存取鏡頭：' + e.message);
       }
@@ -123,10 +96,9 @@
     const sequenceFolders = ['Duck1','Duck2','Duck3','Duck4'];
     let currentSeqIndex = 0;
     const frameCount = 364;
-    let currentFrame = 0;  // 當前序列索引
-    let images = []; // 存放預載的序列圖
-    const fps = 30;            // 每秒30幀
-    const frameInterval = 1000 / fps;
+    let images = [];
+    let currentFrame = 0;
+    const fps = 30, frameInterval = 1000 / fps;
     let lastTime = Date.now();
 
     function preloadImages(folder) {
@@ -146,7 +118,7 @@
       preloadImages(sequenceFolders[currentSeqIndex]);
     });
 
-    // 主渲染迴圈
+    // 主渲染迴圈：canvas 預覽並疊加序列
     function renderLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -162,25 +134,8 @@
       requestAnimationFrame(renderLoop);
     }
 
-    // 拍照功能
+    // 拍照功能：捕捉當下畫面與序列
     captureBtn.addEventListener('click', () => {
-      // 在按鈕點擊時繪製當前鏡頭與序列貼圖
-      if (!video.srcObject) return;
-      // 確保 canvas 尺寸
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      // 清除並繪製鏡頭畫面
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      // 繪製當前序列幀
-      const img = images[currentFrame];
-      if (img && img.complete) {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      }
-      // 顯示結果並隱藏預覽
-      video.style.display = 'none';
-      canvas.style.display = 'block';
-      // 顯示下載連結
       downloadLink.href = canvas.toDataURL('image/png');
       downloadLink.style.display = 'inline-block';
     });
@@ -188,6 +143,3 @@
     // 初始化
     preloadImages(sequenceFolders[0]);
     startCamera();
-  </script>
-</body>
-</html>
