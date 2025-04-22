@@ -25,7 +25,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      object-fit: contain; /* ✅ 防止變形 */
+      object-fit: contain; /* 防止變形 */
       border-radius: 20px;
     }
     #canvas, #photo, #overlay {
@@ -130,28 +130,48 @@
 
     function takePhoto() {
       const context = canvas.getContext("2d");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+
+      const sourceW = video.videoWidth;
+      const sourceH = video.videoHeight;
+
+      const targetW = 360;
+      const targetH = 640;
+
+      // 計算從原始畫面中心裁切的起點
+      const offsetX = (sourceW - targetW) / 2;
+      const offsetY = (sourceH - targetH) / 2;
+
+      // 設定 canvas 為裁切尺寸
+      canvas.width = targetW;
+      canvas.height = targetH;
 
       context.save();
 
       if (facingMode === "user") {
-        context.translate(canvas.width, 0);
+        context.translate(targetW, 0);
         context.scale(-1, 1);
       }
 
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // 將裁切區域畫到 canvas
+      context.drawImage(
+        video,
+        offsetX, offsetY,            // 從 video 畫面的中間開始
+        targetW, targetH,            // 原始來源大小
+        0, 0,                        // 繪製到 canvas 的起點
+        targetW, targetH             // 繪製到 canvas 的大小
+      );
 
+      // 畫上貼圖（假設貼圖本身就等比例為 360×640）
       if (images.length > 0) {
-        context.drawImage(images[currentOverlayIndex], 0, 0, canvas.width, canvas.height);
+        context.drawImage(images[currentOverlayIndex], 0, 0, targetW, targetH);
       }
 
       context.restore();
 
       const data = canvas.toDataURL("image/png");
       photo.src = data;
-      photo.style.width = `${canvas.width}px`;
-      photo.style.height = `${canvas.height}px`;
+      photo.style.width = `${targetW}px`;
+      photo.style.height = `${targetH}px`;
       photo.style.display = "block";
     }
 
