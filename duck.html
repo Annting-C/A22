@@ -136,8 +136,7 @@ captureBtn.onclick=()=>{
   if(imgs.length) drawShrink(imgs[currentFrame]);
 
   lastDataURL = canvas.toDataURL('image/png');      // 取得圖片
-  window.open(lastDataURL,'_blank');                // 立即開新分頁
-
+  
   cancelAnimationFrame(animationId);
   video.pause();
 
