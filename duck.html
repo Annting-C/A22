@@ -105,7 +105,7 @@ async function preload(folder){
 seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
 
 /* ===== Shrink helper ===== */
-const maxRatio = 0.5;
+const maxRatio = 1;
 function drawShrink(img){
   const maxW = canvas.width  * maxRatio;
   const maxH = canvas.height * maxRatio;
