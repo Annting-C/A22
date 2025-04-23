@@ -101,7 +101,7 @@ async function preload(folder){
 seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
 
 /* ===== Shrink helper：縮小置中 ===== */
-const maxRatio = 0.5; // 0~1 之間：貼圖在畫面中所占最大比例
+const maxRatio = 1; // 0~1 之間：貼圖在畫面中所占最大比例
 function drawShrink(img){
   const maxW = canvas.width  * maxRatio;
   const maxH = canvas.height * maxRatio;
