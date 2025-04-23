@@ -53,7 +53,7 @@
   </main>
 
 <script>
-/* ----- DOM ----- */
+/* ===== DOM ===== */
 const video      = document.getElementById('video');
 const canvas     = document.getElementById('canvas');
 const ctx        = canvas.getContext('2d');
@@ -63,7 +63,7 @@ const retakeBtn  = document.getElementById('retake');
 const seqSwitch  = document.getElementById('seqSwitch');
 const dlLink     = document.getElementById('download');
 
-/* ----- Camera ----- */
+/* ===== Camera ===== */
 let stream, currentFacing='user';
 async function startCamera(){
   if(stream) stream.getTracks().forEach(t=>t.stop());
@@ -77,21 +77,21 @@ async function startCamera(){
   }catch(err){alert('無法存取鏡頭：'+err.message);}
 }
 camSwitch.onclick = () =>{
-  currentFacing = currentFacing==='user' ? 'environment':'user';
+  currentFacing = currentFacing==='user' ? 'environment' : 'user';
   startCamera();
 };
 
-/* ----- Sequence images ----- */
+/* ===== Sequence images ===== */
 const sequenceFolders=['Duck1','Duck2','Duck3','Duck4'];
-const frameCount=364,fps=30,interval=1000/fps;
-let imgs=[],currentFrame=0,lastTime=0,seqIdx=0;
+const frameCount=364, fps=30, interval=1000/fps;
+let imgs=[], currentFrame=0, lastTime=0, seqIdx=0;
 async function preload(folder){
-  imgs.length=0;currentFrame=0;
+  imgs.length=0; currentFrame=0;
   const p=[];
   for(let i=0;i<frameCount;i++){
     p.push(new Promise(res=>{
       const img=new Image();
-      img.onload=()=>res(img);img.onerror=()=>res(null);
+      img.onload=()=>res(img); img.onerror=()=>res(null);
       img.src=`${folder}/${folder}_${String(i).padStart(5,'0')}.webp`;
     }));
   }
@@ -100,32 +100,38 @@ async function preload(folder){
 }
 seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
 
-/* ----- Cover helper：填滿並裁切 ----- */
-function drawCover(img){
-  const scale=Math.max(canvas.width/img.naturalWidth, canvas.height/img.naturalHeight);
-  const w=img.naturalWidth*scale, h=img.naturalHeight*scale;
-  const x=(canvas.width-w)/2,    y=(canvas.height-h)/2;
-  ctx.drawImage(img,x,y,w,h);
+/* ===== Shrink helper：縮小置中 ===== */
+const maxRatio = 0.5; // 0~1 之間：貼圖在畫面中所占最大比例
+function drawShrink(img){
+  const maxW = canvas.width  * maxRatio;
+  const maxH = canvas.height * maxRatio;
+  const scale = Math.min(1, Math.min(maxW / img.naturalWidth,
+                                     maxH / img.naturalHeight));
+  const w = img.naturalWidth  * scale;
+  const h = img.naturalHeight * scale;
+  const x = (canvas.width  - w) / 2;
+  const y = (canvas.height - h) / 2;
+  ctx.drawImage(img, x, y, w, h);
 }
 
-/* ----- Render loop ----- */
+/* ===== Render loop ===== */
 let animationId;
 function renderLoop(now){
   animationId=requestAnimationFrame(renderLoop);
   if(!stream) return;
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);   // 鏡頭
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
   if(imgs.length){
     if(now-lastTime>=interval){lastTime=now;currentFrame=(currentFrame+1)%imgs.length;}
-    drawCover(imgs[currentFrame]);                       // 序列圖：Cover
+    drawShrink(imgs[currentFrame]);          // 使用縮小版序列貼圖
   }
 }
 function startLoop(){if(animationId)cancelAnimationFrame(animationId);
   lastTime=performance.now();renderLoop(lastTime);}
 
-/* ----- Capture / Retake ----- */
+/* ===== Capture / Retake ===== */
 captureBtn.onclick=()=>{
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  if(imgs.length) drawCover(imgs[currentFrame]);
+  if(imgs.length) drawShrink(imgs[currentFrame]);
 
   cancelAnimationFrame(animationId);
   video.pause();
@@ -145,7 +151,7 @@ retakeBtn.onclick=()=>{
   dlLink.style.display='none';
 };
 
-/* ----- Init ----- */
+/* ===== Init ===== */
 (async()=>{await preload(sequenceFolders[0]);await startCamera();startLoop();})();
 </script>
 </body>
