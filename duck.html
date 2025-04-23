@@ -17,8 +17,7 @@
   main{margin-top:100px;display:flex;flex-direction:column;align-items:center}
 
   /* 9:16 Viewer */
-  #viewer{position:relative;width:min(70vw,360px);aspect-ratio:9/16;
-          border-radius:20px;overflow:hidden}
+  #viewer{position:relative;width:min(70vw,360px);aspect-ratio:9/16;border-radius:20px;overflow:hidden}
   .media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;transition:transform .2s}
   .mirror{transform:scaleX(-1)}
   #video{z-index:1}
@@ -65,53 +64,62 @@ const openBtn    = document.getElementById('openBtn');
 
 /* ===== Camera ===== */
 let stream, currentFacing='user';
-function applyMirror(isFront){
-  [video, canvas].forEach(el=>el.classList.toggle('mirror', isFront));
-}
+function applyMirror(isFront){ [video, canvas].forEach(el=>el.classList.toggle('mirror', isFront)); }
 async function startCamera(){
   if(stream) stream.getTracks().forEach(t=>t.stop());
   try{
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:currentFacing,width:360,height:640},audio:false});
-    video.srcObject = stream;
-    await video.play();
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:currentFacing,width:360,height:640},audio:false});
+    video.srcObject=stream; await video.play();
+    canvas.width=video.videoWidth; canvas.height=video.videoHeight;
     applyMirror(currentFacing==='user');
   }catch(err){alert('無法存取鏡頭：'+err.message);}
 }
-camSwitch.onclick = () =>{
-  currentFacing = currentFacing==='user' ? 'environment':'user';
-  startCamera();
-};
+camSwitch.onclick=()=>{currentFacing=currentFacing==='user'?'environment':'user';startCamera();};
 
 /* ===== Sequence images ===== */
 const sequenceFolders=['Duck1','Duck2','Duck3','Duck4'];
-const frameCount=364, fps=30, interval=1000/fps;
-let imgs=[], currentFrame=0, lastTime=0, seqIdx=0;
+const frameCount=364,fps=30,interval=1000/fps;
+let imgs=[],currentFrame=0,lastTime=0,seqIdx=0;
 async function preload(folder){
-  imgs.length=0; currentFrame=0;
-  const p=[];
-  for(let i=0;i<frameCount;i++){
-    p.push(new Promise(res=>{
-      const img=new Image();
-      img.onload=()=>res(img); img.onerror=()=>res(null);
-      img.src=`${folder}/${folder}_${String(i).padStart(5,'0')}.webp`;
-    }));
+  imgs.length=0;currentFrame=0;
+  const p=[];for(let i=0;i<frameCount;i++){
+    p.push(new Promise(res=>{const img=new Image();img.onload=()=>res(img);img.onerror=()=>res(null);
+                             img.src=`${folder}/${folder}_${String(i).padStart(5,'0')}.webp`;}));
   }
   imgs=(await Promise.all(p)).filter(Boolean);
   seqSwitch.textContent=folder;
 }
 seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
 
-/* ===== Shrink helper ===== */
-const maxRatio = 1;
+/* ===== Cover-draw helper for VIDEO ===== */
+function drawVideoCover(){
+  const vW=video.videoWidth, vH=video.videoHeight;
+  if(!vW||!vH) return;
+  const cW=canvas.width, cH=canvas.height;
+  const vRatio=vW/vH, cRatio=cW/cH;
+  let srcW, srcH, sx, sy;
+  if(vRatio>cRatio){          // 影片較寬 → 裁左右
+    srcH=vH; srcW=vH*cRatio;
+    sx=(vW-srcW)/2; sy=0;
+  }else{                      // 影片較高 → 裁上下
+    srcW=vW; srcH=vW/cRatio;
+    sx=0; sy=(vH-srcH)/2;
+  }
+  ctx.save();
+  if(currentFacing==='user'){ // 前鏡頭左右翻
+    ctx.translate(cW,0); ctx.scale(-1,1);
+  }
+  ctx.drawImage(video, sx, sy, srcW, srcH, 0, 0, cW, cH);
+  ctx.restore();
+}
+
+/* ===== Shrink helper for SEQUENCE ===== */
+const maxRatio=1;
 function drawShrink(img){
-  const maxW = canvas.width  * maxRatio;
-  const maxH = canvas.height * maxRatio;
-  const scale = Math.min(1, Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight));
-  const w = img.naturalWidth*scale, h = img.naturalHeight*scale;
-  const x = (canvas.width-w)/2,    y = (canvas.height-h)/2;
+  const maxW=canvas.width*maxRatio, maxH=canvas.height*maxRatio;
+  const scale=Math.min(1,Math.min(maxW/img.naturalWidth, maxH/img.naturalHeight));
+  const w=img.naturalWidth*scale, h=img.naturalHeight*scale;
+  const x=(canvas.width-w)/2, y=(canvas.height-h)/2;
   ctx.drawImage(img,x,y,w,h);
 }
 
@@ -120,10 +128,10 @@ let animationId;
 function renderLoop(now){
   animationId=requestAnimationFrame(renderLoop);
   if(!stream) return;
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  drawVideoCover();                               // 影片 cover
   if(imgs.length){
     if(now-lastTime>=interval){lastTime=now;currentFrame=(currentFrame+1)%imgs.length;}
-    drawShrink(imgs[currentFrame]);
+    drawShrink(imgs[currentFrame]);               // 疊貼圖
   }
 }
 function startLoop(){if(animationId)cancelAnimationFrame(animationId);
@@ -132,32 +140,16 @@ function startLoop(){if(animationId)cancelAnimationFrame(animationId);
 /* ===== Capture / Retake ===== */
 let lastDataURL='';
 captureBtn.onclick=()=>{
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  if(imgs.length) drawShrink(imgs[currentFrame]);
-
-  lastDataURL = canvas.toDataURL('image/png');      // 取得圖片
-  window.open(lastDataURL,'_blank');                // 立即開新分頁
-
-  cancelAnimationFrame(animationId);
-  video.pause();
-
-  captureBtn.style.display='none';
-  retakeBtn.style.display='inline-flex';
-  openBtn.style.display='inline-flex';
+  drawVideoCover(); if(imgs.length) drawShrink(imgs[currentFrame]);
+  lastDataURL=canvas.toDataURL('image/png'); window.open(lastDataURL,'_blank');
+  cancelAnimationFrame(animationId); video.pause();
+  captureBtn.style.display='none'; retakeBtn.style.display='inline-flex'; openBtn.style.display='inline-flex';
 };
-openBtn.onclick = () => {
-  if (lastDataURL) {
-    var newTab = window.open("about:blank", "image from canvas");
-    newTab.document.write("<img src='" + lastDataURL + "' alt='from canvas'/>");
-  }
-};
-
+openBtn.onclick=()=>{ if(lastDataURL) window.open(lastDataURL,'_blank'); };
 
 retakeBtn.onclick=()=>{
   video.play();startLoop();
-  retakeBtn.style.display='none';
-  captureBtn.style.display='inline-flex';
-  openBtn.style.display='none';
+  retakeBtn.style.display='none'; captureBtn.style.display='inline-flex'; openBtn.style.display='none';
 };
 
 /* ===== Init ===== */
@@ -165,4 +157,3 @@ retakeBtn.onclick=()=>{
 </script>
 </body>
 </html>
-
