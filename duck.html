@@ -20,7 +20,7 @@
   #viewer{position:relative;width:min(70vw,360px);aspect-ratio:9/16;
           border-radius:20px;overflow:hidden}
   .media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;transition:transform .2s}
-  .mirror{transform:scaleX(-1)}
+  .mirror{transform:scaleX(-1)}             /* 只負責螢幕上的預覽鏡射 */
   #video{z-index:1}
   #canvas{z-index:10;pointer-events:none}
 
@@ -87,10 +87,10 @@ camSwitch.onclick = () =>{
 
 /* ===== Sequence images ===== */
 const sequenceFolders=['Duck1','Duck2','Duck3','Duck4'];
-const frameCount=364, fps=30, interval=1000/fps;
-let imgs=[], currentFrame=0, lastTime=0, seqIdx=0;
+const frameCount=364,fps=30,interval=1000/fps;
+let imgs=[],currentFrame=0,lastTime=0,seqIdx=0;
 async function preload(folder){
-  imgs.length=0; currentFrame=0;
+  imgs.length=0;currentFrame=0;
   const p=[];
   for(let i=0;i<frameCount;i++){
     p.push(new Promise(res=>{
@@ -104,15 +104,27 @@ async function preload(folder){
 }
 seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
 
-/* ===== Shrink helper ===== */
-const maxRatio = 1;
+/* ===== Shrink helper (貼圖可調整占比) ===== */
+const maxRatio=1;
 function drawShrink(img){
-  const maxW = canvas.width  * maxRatio;
-  const maxH = canvas.height * maxRatio;
-  const scale = Math.min(1, Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight));
-  const w = img.naturalWidth*scale, h = img.naturalHeight*scale;
-  const x = (canvas.width-w)/2,    y = (canvas.height-h)/2;
+  const maxW=canvas.width*maxRatio,maxH=canvas.height*maxRatio;
+  const scale=Math.min(1,Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight));
+  const w=img.naturalWidth*scale,h=img.naturalHeight*scale;
+  const x=(canvas.width-w)/2,y=(canvas.height-h)/2;
   ctx.drawImage(img,x,y,w,h);
+}
+
+/* ===== Video helper：確保前鏡頭寫進 canvas 時也鏡射 ===== */
+function drawVideo(){
+  if(currentFacing==='user'){
+    ctx.save();
+    ctx.translate(canvas.width,0);
+    ctx.scale(-1,1);                         // 左右翻轉
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    ctx.restore();
+  }else{
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  }
 }
 
 /* ===== Render loop ===== */
@@ -120,10 +132,10 @@ let animationId;
 function renderLoop(now){
   animationId=requestAnimationFrame(renderLoop);
   if(!stream) return;
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  drawVideo();                               // 先畫鏡頭畫面
   if(imgs.length){
     if(now-lastTime>=interval){lastTime=now;currentFrame=(currentFrame+1)%imgs.length;}
-    drawShrink(imgs[currentFrame]);
+    drawShrink(imgs[currentFrame]);          // 疊貼圖
   }
 }
 function startLoop(){if(animationId)cancelAnimationFrame(animationId);
@@ -132,11 +144,11 @@ function startLoop(){if(animationId)cancelAnimationFrame(animationId);
 /* ===== Capture / Retake ===== */
 let lastDataURL='';
 captureBtn.onclick=()=>{
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  drawVideo();                               // 再畫一次確保對應鏡射
   if(imgs.length) drawShrink(imgs[currentFrame]);
 
-  lastDataURL = canvas.toDataURL('image/png');      // 取得圖片
-  window.open(lastDataURL,'_blank');                // 立即開新分頁
+  lastDataURL=canvas.toDataURL('image/png');
+  window.open(lastDataURL,'_blank');         // 新分頁呈現
 
   cancelAnimationFrame(animationId);
   video.pause();
@@ -165,4 +177,3 @@ retakeBtn.onclick=()=>{
 </script>
 </body>
 </html>
-
