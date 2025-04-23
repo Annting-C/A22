@@ -8,129 +8,178 @@
 <style>
   /* ---------- Reset & 基本 ---------- */
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;height:100vh;overflow:hidden;
-       display:flex;flex-direction:column;align-items:center;justify-content:center;padding-top:60px}
-  #pageTitle{position:fixed;top:20px;left:50%;transform:translateX(-50%);
-             font-size:28px;font-weight:700;letter-spacing:2px;z-index:5;pointer-events:none}
+  body{background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;height:100vh;overflow:hidden}
+
+  /* ---------- 標題 ---------- */
+  #pageTitle{
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    font-size:28px;font-weight:700;letter-spacing:2px;z-index:5;pointer-events:none
+  }
+
+  /* ---------- 主內容：整體下移 100px ---------- */
+  main{margin-top:100px;display:flex;flex-direction:column;align-items:center}
+
   /* ---------- 9:16 Responsive Viewer ---------- */
-  #viewer{position:relative;              /* 讓內部絕對定位 */
-          width:min(70vw, 360px);         /* 小螢幕占 90vw；桌機封頂 560px */
-          aspect-ratio:9/16;              /* 關鍵：固定比例 */
-          border-radius:20px;overflow:hidden}
-  .media{position:absolute;inset:0;       /* 填滿 viewer */
-         width:100%;height:100%;
-         object-fit:cover;border-radius:inherit;
-         transform:scaleX(-1);}           /* 鏡射 */
+  #viewer{
+    position:relative;                 /* 讓內部絕對定位 */
+    width:min(70vw,360px);             /* 小螢幕占 90vw；桌機封頂 560px */
+    aspect-ratio:9/16;                 /* 關鍵：固定比例 */
+    border-radius:20px;overflow:hidden
+  }
+  .media{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;border-radius:inherit;
+    transform:scaleX(-1)               /* 鏡射 */
+  }
   #video{z-index:1}
   #canvas{z-index:10;pointer-events:none}
-  /* ---------- Controls ---------- */
-  .controls{margin-top:16px;display:flex;gap:12px;
-            background:rgba(0,0,0,.4);backdrop-filter:blur(6px);
-            padding:8px 16px;border-radius:30px;z-index:20}
-  .controls button,.controls a{width:48px;height:48px;border-radius:50%;border:none;
-                               display:flex;align-items:center;justify-content:center;
-                               font-size:14px;cursor:pointer;color:#fff;background:#ff9500}
+
+  /* ---------- 控制列 ---------- */
+  .controls{
+    margin-top:16px;display:flex;gap:12px;
+    background:rgba(0,0,0,.4);backdrop-filter:blur(6px);
+    padding:8px 16px;border-radius:30px;z-index:20
+  }
+  .controls button,.controls a{
+    width:48px;height:48px;border-radius:50%;border:none;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;cursor:pointer;color:#fff;background:#ff9500
+  }
   .controls button:hover,.controls a:hover{background:#e69500}
   #download{display:none;text-decoration:none}
-  #download[disabled]{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
+  <!-- 標題 -->
   <div id="pageTitle">SKYWEAVER PASSAGE</div>
 
-  <!-- 新增 viewer 容器 -->
-  <div id="viewer">
-    <video  id="video"  class="media" autoplay playsinline muted></video>
-    <canvas id="canvas" class="media"></canvas>
-  </div>
+  <!-- 主內容（整體下移） -->
+  <main>
+    <!-- 影像區 -->
+    <div id="viewer">
+      <video  id="video"  class="media" autoplay playsinline muted></video>
+      <canvas id="canvas" class="media"></canvas>
+    </div>
 
-  <div class="controls">
-    <button id="camSwitch"  title="切換鏡頭">鏡頭</button>
-    <button id="capture"    title="拍照">拍照</button>
-    <button id="retake"     title="重拍" style="display:none">重拍</button>
-    <button id="seqSwitch"  title="切換序列">序列</button>
-    <a      id="download"   title="下載">下載</a>
-  </div>
+    <!-- 控制列 -->
+    <div class="controls">
+      <button id="camSwitch"  title="切換鏡頭">鏡頭</button>
+      <button id="capture"    title="拍照">拍照</button>
+      <button id="retake"     title="重拍" style="display:none">重拍</button>
+      <button id="seqSwitch"  title="切換序列">序列</button>
+      <a      id="download"   title="下載">下載</a>
+    </div>
+  </main>
 
 <script>
-/* =======  原先 JS 幾乎不變，只做極小調整 ======= */
-const video=document.getElementById('video');
-const canvas=document.getElementById('canvas');
-const ctx=canvas.getContext('2d');
-const camSwitch=document.getElementById('camSwitch');
-const captureBtn=document.getElementById('capture');
-const retakeBtn=document.getElementById('retake');
-const seqSwitch=document.getElementById('seqSwitch');
-const dlLink=document.getElementById('download');
+/* ======  DOM  ====== */
+const video      = document.getElementById('video');
+const canvas     = document.getElementById('canvas');
+const ctx        = canvas.getContext('2d');
+const camSwitch  = document.getElementById('camSwitch');
+const captureBtn = document.getElementById('capture');
+const retakeBtn  = document.getElementById('retake');
+const seqSwitch  = document.getElementById('seqSwitch');
+const dlLink     = document.getElementById('download');
 
-let stream,currentFacing='user';
+/* ======  Camera  ====== */
+let stream, currentFacing='user';
 async function startCamera(){
   if(stream) stream.getTracks().forEach(t=>t.stop());
   try{
-    stream=await navigator.mediaDevices.getUserMedia({
+    stream = await navigator.mediaDevices.getUserMedia({
       video:{facingMode:currentFacing,width:360,height:640},audio:false});
-    video.srcObject=stream;
+    video.srcObject = stream;
     await video.play();
-    canvas.width=video.videoWidth;
-    canvas.height=video.videoHeight;
-  }catch(err){alert('無法存取鏡頭：'+err.message);}
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+  }catch(err){
+    alert('無法存取鏡頭：'+err.message);
+  }
 }
-camSwitch.onclick=()=>{currentFacing=currentFacing==='user'?'environment':'user';startCamera();};
+camSwitch.onclick = () => {
+  currentFacing = currentFacing==='user' ? 'environment' : 'user';
+  startCamera();
+};
 
-/* -- sequence images -- */
+/* ======  Sequence images  ====== */
 const sequenceFolders=['Duck1','Duck2','Duck3','Duck4'];
-const frameCount=364,fps=30,interval=1000/fps;
-let imgs=[],currentFrame=0,lastTime=0,seqIdx=0;
+const frameCount=364, fps=30, interval=1000/fps;
+let imgs=[], currentFrame=0, lastTime=0, seqIdx=0;
 async function preload(folder){
-  imgs.length=0;currentFrame=0;
+  imgs.length=0; currentFrame=0;
   const promises=[];
   for(let i=0;i<frameCount;i++){
     promises.push(new Promise(res=>{
       const img=new Image();
-      img.onload=()=>res(img);
-      img.onerror=()=>res(null);
-      img.src=`${folder}/${folder}_${String(i).padStart(5,'0')}.webp`;
+      img.onload = () => res(img);
+      img.onerror= () => res(null);
+      img.src = `${folder}/${folder}_${String(i).padStart(5,'0')}.webp`;
     }));
   }
-  imgs=(await Promise.all(promises)).filter(Boolean);
-  seqSwitch.textContent=folder;
+  imgs = (await Promise.all(promises)).filter(Boolean);
+  seqSwitch.textContent = folder;
 }
-seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
+seqSwitch.onclick = () => {
+  seqIdx = (seqIdx+1)%sequenceFolders.length;
+  preload(sequenceFolders[seqIdx]);
+};
 
-/* -- render loop -- */
+/* ======  Render loop  ====== */
 let animationId;
 function renderLoop(now){
-  animationId=requestAnimationFrame(renderLoop);
-  if(!stream)return;
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  animationId = requestAnimationFrame(renderLoop);
+  if(!stream) return;                                  // camera 未開
+  ctx.drawImage(video,0,0,canvas.width,canvas.height); // 鏡頭
+
   if(imgs.length){
-    if(now-lastTime>=interval){lastTime=now;currentFrame=(currentFrame+1)%imgs.length;}
-    const frame=imgs[currentFrame];
-    if(frame) ctx.drawImage(frame,0,0,canvas.width,canvas.height);
+    if(now-lastTime >= interval){
+      lastTime = now;
+      currentFrame = (currentFrame+1)%imgs.length;
+    }
+    const frame = imgs[currentFrame];
+    if(frame) ctx.drawImage(frame,0,0,canvas.width,canvas.height); // 序列圖
   }
 }
-function startLoop(){if(animationId)cancelAnimationFrame(animationId);lastTime=performance.now();renderLoop(lastTime);}
+function startLoop(){
+  if(animationId) cancelAnimationFrame(animationId);
+  lastTime = performance.now();
+  renderLoop(lastTime);
+}
 
-/* -- capture / retake -- */
-captureBtn.onclick=()=>{
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  const overlay=imgs[currentFrame];
+/* ======  Capture / Retake  ====== */
+captureBtn.onclick = ()=>{
+  ctx.drawImage(video,0,0,canvas.width,canvas.height); // 固定鏡頭一幀
+  const overlay = imgs[currentFrame];
   if(overlay) ctx.drawImage(overlay,0,0,canvas.width,canvas.height);
 
-  cancelAnimationFrame(animationId);video.pause();
-  captureBtn.style.display='none';retakeBtn.style.display='inline-flex';
+  cancelAnimationFrame(animationId);
+  video.pause();
 
-  const ts=new Date().toISOString().replace(/[:.]/g,'-');
-  dlLink.href=canvas.toDataURL('image/png');
-  dlLink.download=`photo_${ts}.png`;
+  captureBtn.style.display='none';
+  retakeBtn.style.display='inline-flex';
+
+  const ts = new Date().toISOString().replace(/[:.]/g,'-');
+  dlLink.href     = canvas.toDataURL('image/png');
+  dlLink.download = `photo_${ts}.png`;
   dlLink.style.display='inline-flex';
 };
-retakeBtn.onclick=()=>{video.play();startLoop();
-  retakeBtn.style.display='none';captureBtn.style.display='inline-flex';dlLink.style.display='none';
+
+retakeBtn.onclick = ()=>{
+  video.play();
+  startLoop();
+  retakeBtn.style.display='none';
+  captureBtn.style.display='inline-flex';
+  dlLink.style.display='none';
 };
 
-/* -- init -- */
-(async()=>{await preload(sequenceFolders[0]);await startCamera();startLoop();})();
+/* ======  Init  ====== */
+(async ()=>{
+  await preload(sequenceFolders[0]);
+  await startCamera();
+  startLoop();
+})();
 </script>
 </body>
 </html>
