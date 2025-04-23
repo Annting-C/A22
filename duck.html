@@ -145,7 +145,13 @@ captureBtn.onclick=()=>{
   retakeBtn.style.display='inline-flex';
   openBtn.style.display='inline-flex';
 };
-openBtn.onclick=()=>{ if(lastDataURL) window.open(lastDataURL,'_blank'); };
+openBtn.onclick = () => {
+  if (lastDataURL) {
+    var newTab = window.open("about:blank", "image from canvas");
+    newTab.document.write("<img src='" + lastDataURL + "' alt='from canvas'/>");
+  }
+};
+
 
 retakeBtn.onclick=()=>{
   video.play();startLoop();
