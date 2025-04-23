@@ -53,7 +53,7 @@
   </main>
 
 <script>
-/* ===== DOM ===== */
+/* ----- DOM ----- */
 const video      = document.getElementById('video');
 const canvas     = document.getElementById('canvas');
 const ctx        = canvas.getContext('2d');
@@ -63,7 +63,7 @@ const retakeBtn  = document.getElementById('retake');
 const seqSwitch  = document.getElementById('seqSwitch');
 const dlLink     = document.getElementById('download');
 
-/* ===== Camera ===== */
+/* ----- Camera ----- */
 let stream, currentFacing='user';
 async function startCamera(){
   if(stream) stream.getTracks().forEach(t=>t.stop());
@@ -81,7 +81,7 @@ camSwitch.onclick = () =>{
   startCamera();
 };
 
-/* ===== Sequence images ===== */
+/* ----- Sequence images ----- */
 const sequenceFolders=['Duck1','Duck2','Duck3','Duck4'];
 const frameCount=364,fps=30,interval=1000/fps;
 let imgs=[],currentFrame=0,lastTime=0,seqIdx=0;
@@ -100,15 +100,15 @@ async function preload(folder){
 }
 seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
 
-/* ===== Draw helper：保持比例置中 ===== */
-function drawContain(img){
-  const scale=Math.min(canvas.width/img.naturalWidth,canvas.height/img.naturalHeight);
-  const w=img.naturalWidth*scale,h=img.naturalHeight*scale;
-  const x=(canvas.width-w)/2,y=(canvas.height-h)/2;
+/* ----- Cover helper：填滿並裁切 ----- */
+function drawCover(img){
+  const scale=Math.max(canvas.width/img.naturalWidth, canvas.height/img.naturalHeight);
+  const w=img.naturalWidth*scale, h=img.naturalHeight*scale;
+  const x=(canvas.width-w)/2,    y=(canvas.height-h)/2;
   ctx.drawImage(img,x,y,w,h);
 }
 
-/* ===== Render loop ===== */
+/* ----- Render loop ----- */
 let animationId;
 function renderLoop(now){
   animationId=requestAnimationFrame(renderLoop);
@@ -116,16 +116,16 @@ function renderLoop(now){
   ctx.drawImage(video,0,0,canvas.width,canvas.height);   // 鏡頭
   if(imgs.length){
     if(now-lastTime>=interval){lastTime=now;currentFrame=(currentFrame+1)%imgs.length;}
-    drawContain(imgs[currentFrame]);                      // 序列圖 (維持比例)
+    drawCover(imgs[currentFrame]);                       // 序列圖：Cover
   }
 }
 function startLoop(){if(animationId)cancelAnimationFrame(animationId);
   lastTime=performance.now();renderLoop(lastTime);}
 
-/* ===== Capture / Retake ===== */
+/* ----- Capture / Retake ----- */
 captureBtn.onclick=()=>{
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
-  if(imgs.length) drawContain(imgs[currentFrame]);        // 保持比例
+  if(imgs.length) drawCover(imgs[currentFrame]);
 
   cancelAnimationFrame(animationId);
   video.pause();
@@ -145,7 +145,7 @@ retakeBtn.onclick=()=>{
   dlLink.style.display='none';
 };
 
-/* ===== Init ===== */
+/* ----- Init ----- */
 (async()=>{await preload(sequenceFolders[0]);await startCamera();startLoop();})();
 </script>
 </body>
