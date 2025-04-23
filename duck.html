@@ -20,18 +20,18 @@
   #viewer{position:relative;width:min(70vw,360px);aspect-ratio:9/16;
           border-radius:20px;overflow:hidden}
   .media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;transition:transform .2s}
-  .mirror{transform:scaleX(-1)}
+  .mirror{transform:scaleX(-1)}            /* ⇦ 只有加這一 class 才鏡像 */
   #video{z-index:1}
   #canvas{z-index:10;pointer-events:none}
 
   /* 控制列 */
   .controls{margin-top:16px;display:flex;gap:12px;background:rgba(0,0,0,.4);
             backdrop-filter:blur(6px);padding:8px 16px;border-radius:30px;z-index:20}
-  .controls button{width:48px;height:48px;border-radius:50%;border:none;
-                   display:flex;align-items:center;justify-content:center;
-                   font-size:14px;cursor:pointer;color:#fff;background:#ff9500}
-  .controls button:hover{background:#e69500}
-  #openBtn{display:none}
+  .controls button,.controls a{width:48px;height:48px;border-radius:50%;border:none;
+                               display:flex;align-items:center;justify-content:center;
+                               font-size:14px;cursor:pointer;color:#fff;background:#ff9500}
+  .controls button:hover,.controls a:hover{background:#e69500}
+  #download{display:none;text-decoration:none}
 </style>
 </head>
 <body>
@@ -48,7 +48,7 @@
       <button id="capture"    title="拍照">拍照</button>
       <button id="retake"     title="重拍" style="display:none">重拍</button>
       <button id="seqSwitch"  title="切換序列">序列</button>
-      <button id="openBtn"    title="新分頁檢視">預覽</button>
+      <a      id="download"   title="下載">下載</a>
     </div>
   </main>
 
@@ -61,12 +61,14 @@ const camSwitch  = document.getElementById('camSwitch');
 const captureBtn = document.getElementById('capture');
 const retakeBtn  = document.getElementById('retake');
 const seqSwitch  = document.getElementById('seqSwitch');
-const openBtn    = document.getElementById('openBtn');
+const dlLink     = document.getElementById('download');
 
 /* ===== Camera ===== */
 let stream, currentFacing='user';
 function applyMirror(isFront){
-  [video, canvas].forEach(el=>el.classList.toggle('mirror', isFront));
+  [video, canvas].forEach(el=>{
+    el.classList.toggle('mirror', isFront);   // ⇦ 動態加/移除 .mirror
+  });
 }
 async function startCamera(){
   if(stream) stream.getTracks().forEach(t=>t.stop());
@@ -77,11 +79,11 @@ async function startCamera(){
     await video.play();
     canvas.width  = video.videoWidth;
     canvas.height = video.videoHeight;
-    applyMirror(currentFacing==='user');
+    applyMirror(currentFacing==='user');      // ⇦ 依鏡頭決定是否鏡像
   }catch(err){alert('無法存取鏡頭：'+err.message);}
 }
 camSwitch.onclick = () =>{
-  currentFacing = currentFacing==='user' ? 'environment':'user';
+  currentFacing = currentFacing==='user' ? 'environment' : 'user';
   startCamera();
 };
 
@@ -110,9 +112,9 @@ function drawShrink(img){
   const maxW = canvas.width  * maxRatio;
   const maxH = canvas.height * maxRatio;
   const scale = Math.min(1, Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight));
-  const w = img.naturalWidth*scale, h = img.naturalHeight*scale;
-  const x = (canvas.width-w)/2,    y = (canvas.height-h)/2;
-  ctx.drawImage(img,x,y,w,h);
+  const w = img.naturalWidth  * scale, h = img.naturalHeight * scale;
+  const x = (canvas.width-w)/2,       y = (canvas.height-h)/2;
+  ctx.drawImage(img, x, y, w, h);
 }
 
 /* ===== Render loop ===== */
@@ -130,33 +132,28 @@ function startLoop(){if(animationId)cancelAnimationFrame(animationId);
   lastTime=performance.now();renderLoop(lastTime);}
 
 /* ===== Capture / Retake ===== */
-let lastDataURL='';
 captureBtn.onclick=()=>{
   ctx.drawImage(video,0,0,canvas.width,canvas.height);
   if(imgs.length) drawShrink(imgs[currentFrame]);
 
-  lastDataURL = canvas.toDataURL('image/png');      // 取得圖片
-  
   cancelAnimationFrame(animationId);
   video.pause();
 
   captureBtn.style.display='none';
   retakeBtn.style.display='inline-flex';
-  openBtn.style.display='inline-flex';
-};
-openBtn.onclick = () => {
-  if (lastDataURL) {
-    var newTab = window.open("about:blank", "image from canvas");
-    newTab.document.write("<img src='" + lastDataURL + "' alt='from canvas'/>");
-  }
-};
 
+  const ts=new Date().toISOString().replace(/[:.]/g,'-');
+  dlLink.href=canvas.toDataURL('image/png');
+  dlLink.download=`photo_${ts}.png`;
+  dlLink.style.display='inline-flex';
+};
 retakeBtn.onclick=()=>{
   video.play();startLoop();
   retakeBtn.style.display='none';
   captureBtn.style.display='inline-flex';
-  openBtn.style.display='none';
+  dlLink.style.display='none';
 };
+
 
 /* ===== Init ===== */
 (async()=>{await preload(sequenceFolders[0]);await startCamera();startLoop();})();
