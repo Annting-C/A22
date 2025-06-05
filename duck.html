@@ -44,12 +44,27 @@
     </div>
 
     <div class="controls">
-      <button id="camSwitch"  title="切換鏡頭">鏡頭</button>
-      <button id="capture"    title="拍照">拍照</button>
-      <button id="retake"     title="重拍" style="display:none">重拍</button>
-      <button id="seqSwitch"  title="切換序列">序列</button>
-      <a      id="download"   title="下載">下載</a>
-    </div>
+  <button id="camSwitch" title="切換鏡頭">
+    <img src="refresh.png" alt="鏡頭" width="32" height="32">
+  </button>
+
+  <button id="capture" title="拍照">
+    <img src="camera.png" alt="拍照" width="32" height="32">
+  </button>
+
+  <button id="retake" title="重拍" style="display:none">
+    <img src="turn-back.png" alt="重拍" width="32" height="32">
+  </button>
+
+  <button id="seqSwitch" title="切換序列">
+    <img src="duck.png" alt="序列" width="32" height="32">
+  </button>
+
+  <a id="download" title="下載">
+    <img src="downloads.png" alt="下載" width="32" height="32">
+  </a>
+</div>
+
   </main>
 
 <script>
@@ -102,9 +117,13 @@ async function preload(folder){
     }));
   }
   imgs=(await Promise.all(p)).filter(Boolean);
-  seqSwitch.textContent=folder;
+  
 }
-seqSwitch.onclick=()=>{seqIdx=(seqIdx+1)%sequenceFolders.length;preload(sequenceFolders[seqIdx]);};
+seqSwitch.onclick = () => {
+  seqIdx = (seqIdx + 1) % sequenceFolders.length;
+  preload(sequenceFolders[seqIdx]);
+  // 不再更動圖片 src，也不使用 seqSwitch.textContent
+};
 
 /* ===== Shrink helper ===== */
 const maxRatio = 1;
@@ -147,12 +166,11 @@ captureBtn.onclick=()=>{
   dlLink.download=`photo_${ts}.png`;
   dlLink.style.display='inline-flex';
 };
-retakeBtn.onclick=()=>{
-  video.play();startLoop();
-  retakeBtn.style.display='none';
-  captureBtn.style.display='inline-flex';
-  dlLink.style.display='none';
-};
+ const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  dlLink.href = canvas.toDataURL('image/png');
+  dlLink.download = `photo_${ts}.png`;
+  dlLink.style.display = 'inline-flex';  // ✅ 關鍵這一行
+;
 
 
 /* ===== Init ===== */
